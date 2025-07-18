@@ -1,23 +1,33 @@
 let logo = null;
 
 window.onload = function () {
+    // Cargar logo
     const img = new Image();
     img.src = 'assets/logo-linea-gris.png';
     img.onload = function () {
         logo = img;
     };
 
-    // Eventos para recalcular resta
+    // Fecha de hoy
+    const hoy = new Date();
+    document.getElementById('fecha').value = hoy.toISOString().split('T')[0];
+
+    // Opciones de entrega y fecha inicial
+    actualizarOpcionesEntrega(); 
+    cambiarEntrega(); 
+
+    // Eventos para calcular resta
     document.getElementById('total').addEventListener('input', actualizarResta);
     document.getElementById('sena').addEventListener('input', actualizarResta);
 
-    // Evento al primer importe
+    // Eventos para calcular total dinámicamente
     const importes = document.getElementsByName("importe[]");
     for (let i = 0; i < importes.length; i++) {
         importes[i].addEventListener('input', actualizarTotal);
     }
 };
 
+// ---- Funciones de cálculos ----
 function actualizarTotal() {
     const importes = document.getElementsByName("importe[]");
     let suma = 0;
@@ -35,6 +45,7 @@ function actualizarResta() {
     document.getElementById('resta').value = (total - sena).toFixed(2);
 }
 
+// ---- Agregar detalle ----
 function agregarDetalle() {
     const detalleHTML = `
     <div class="row mb-2">
@@ -58,17 +69,9 @@ function formatearMoneda(numero) {
     return "$ " + parseFloat(numero).toLocaleString("es-AR");
 }
 
-// Validación de campos
+// ---- Validación ----
 function validarCampos() {
-    const camposObligatorios = [
-        'fecha',
-        'fechaEntrega',
-        'seniores',
-        'domicilio',
-        'localidad',
-        'telefono'
-    ];
-
+    const camposObligatorios = ['fecha', 'fechaEntrega', 'seniores', 'domicilio', 'localidad', 'telefono'];
     for (let campo of camposObligatorios) {
         let valor = document.getElementById(campo).value.trim();
         if (valor === "") {
@@ -77,7 +80,7 @@ function validarCampos() {
         }
     }
 
-    // Al menos un detalle
+    // Validar detalles
     const detalles = document.getElementsByName("detalle[]");
     if (detalles.length === 0 || detalles[0].value.trim() === "") {
         alert("Por favor, ingrese al menos un detalle del pedido.");
@@ -87,12 +90,14 @@ function validarCampos() {
     return true;
 }
 
+// ---- Generar PDF ----
 async function generarPDF() {
     if (!validarCampos()) return;
 
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF();
 
+    // Fondo blanco
     doc.setFillColor(255, 255, 255);
     doc.rect(10, 10, 190, 277, 'F');
 
@@ -128,7 +133,7 @@ async function generarPDF() {
     // Tabla dinámica
     let yTabla = 100;
 
-    // Cabecera
+    // Cabecera tabla
     doc.setDrawColor(0);
     doc.setLineWidth(0.2);
     doc.rect(20, yTabla, 170, 10);
@@ -140,16 +145,14 @@ async function generarPDF() {
 
     yTabla += 10;
 
-    // Filas de datos
+    // Filas
     for (let i = 0; i < detalles.length; i++) {
         let detalleTexto = doc.splitTextToSize(detalles[i].value, 120);
-        let alturaFila = detalleTexto.length * 5 * 2;
+        let alturaFila = detalleTexto.length * 5 + 3;
 
-        // Marco de la fila
         doc.rect(20, yTabla, 170, alturaFila);
         doc.line(150, yTabla, 150, yTabla + alturaFila);
 
-        // Texto dentro de la fila
         doc.text(detalleTexto, 24, yTabla + 6);
         doc.text(formatearMoneda(importes[i].value), 186, yTabla + 6, { align: 'right' });
 
@@ -178,4 +181,60 @@ async function generarPDF() {
     if (logo) doc.addImage(logo, 'PNG', 15, 15, 25, 25);
 
     doc.save("nota_pedido.pdf");
+}
+
+// ---- Funciones de entrega ----
+function sumarDiasHabiles(fecha, diasHabiles) {
+    let contador = 0;
+    let fechaTemp = new Date(fecha);
+    while (contador < diasHabiles) {
+        fechaTemp.setDate(fechaTemp.getDate() + 1);
+        let dia = fechaTemp.getDay();
+        if (dia !== 0 && dia !== 6) contador++;
+    }
+    return fechaTemp;
+}
+
+function formatearFecha(fecha) {
+    let dia = fecha.getDate().toString().padStart(2, '0');
+    let mes = (fecha.getMonth() + 1).toString().padStart(2, '0');
+    let anio = fecha.getFullYear();
+    return `${dia}/${mes}/${anio}`;
+}
+
+function actualizarOpcionesEntrega() {
+    const hoy = new Date();
+    const fecha15 = formatearFecha(sumarDiasHabiles(hoy, 15));
+    const fecha20 = formatearFecha(sumarDiasHabiles(hoy, 20));
+
+    document.querySelector('#opcionEntrega option[value="15"]').textContent = `15 días hábiles (${fecha15})`;
+    document.querySelector('#opcionEntrega option[value="20"]').textContent = `20 días hábiles (${fecha20})`;
+}
+
+function cambiarEntrega() {
+    const opcion = document.getElementById('opcionEntrega').value;
+    const inputFecha = document.getElementById('fechaEntrega');
+    const hoy = new Date();
+
+    if (opcion === "especial") {
+        inputFecha.style.display = "block";
+        inputFecha.value = "";
+    } else {
+        inputFecha.style.display = "none";
+        const dias = parseInt(opcion);
+        const fechaEntrega = sumarDiasHabiles(hoy, dias);
+        document.getElementById('fechaEntrega').value = fechaEntrega.toISOString().split('T')[0];
+    }
+}
+
+// ---- WhatsApp ----
+function enviarPorWhatsApp() {
+    const telefono = document.getElementById('telefono').value.trim();
+    if (telefono === "") {
+        alert("Por favor, ingrese un número de teléfono.");
+        return;
+    }
+    const mensaje = encodeURIComponent("¡Hola! Te envío la nota de pedido generada desde Sur Maderas.");
+    const url = `https://wa.me/54${telefono}?text=${mensaje}`;
+    window.open(url, '_blank');
 }

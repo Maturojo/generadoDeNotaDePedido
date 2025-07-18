@@ -1,0 +1,35 @@
+@use '../utils/variables' as vars;
+
+button {
+    width: 200px;
+    height: auto;
+    font-size: 1.1rem;
+    border-radius: 5px;
+    border-color: vars.$primary-color;
+    padding: 1px;
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    transition: transform 0.2s ease;             
+}
+
+.agregar {
+    background-color: vars.$primary-color;
+    color: vars.$white;
+    border-color: vars.$primary-color;
+    margin-bottom: 10px;
+    transition: transform 0.2s ease;    
+}
+
+.agregar:hover {
+    background-color: vars.$white;
+    color: vars.$primary-color ;
+    border-color: vars.$primary-color;
+    scale: (1.08) ;
+}
+
+btn.btn-primary {
+
+}

@@ -1,0 +1,6 @@
+@use '../utils/variables' as vars;
+
+body {
+    background-color: vars.$secondary-color;
+    color: vars.$white;
+}

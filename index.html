@@ -5,10 +5,11 @@
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>Generador de Nota de Pedido - Sur Maderas</title>
         <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+        <link rel="stylesheet" href="css/main.css">
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     </head>
-    <body style="background-color: #615f5f; color: #e2dfd9;">
-    <div class="container mt-5 p-4" style="background-color: #ffffff; border-radius: 10px;">
+    <body>
+    <div class="container mt-5 p-4">
         <h2 class="mb-4 text-center" style="color: #615f5f;">Generador de Nota de Pedido - Sur Maderas</h2>
 
         <form id="formulario">
@@ -19,8 +20,13 @@
             </div>
             <div class="col">
             <label style="color:#615f5f">Entrega para el día:</label>
-            <input type="date" class="form-control" id="fechaEntrega">
-            </div>
+            <select class="form-control" id="opcionEntrega" onchange="cambiarEntrega()">
+                <option value="15">15 días hábiles</option>
+                <option value="20">20 días hábiles</option>
+                <option value="especial">Entrega especial</option>
+            </select>
+            <input type="date" class="form-control mt-2" id="fechaEntrega" style="display:none;">
+        </div>
         </div>
 
         <div class="mb-3">
@@ -54,7 +60,7 @@
             </div>
         </div>
 
-        <button type="button" class="btn btn-secondary mb-3" onclick="agregarDetalle()">Agregar otro detalle</button>
+        <button type="button" class="agregar" onclick="agregarDetalle()">Agregar otro detalle</button>
 
         <div class="row mb-3">
             <div class="col">
@@ -72,8 +78,12 @@
         </div>
 
         <button type="button" class="btn btn-primary" onclick="generarPDF()">Generar Nota de Pedido</button>
+        <button type="button" class="btn btn-success mt-2" onclick="enviarPorWhatsApp()">Enviar por WhatsApp</button>
         </form>
     </div>
+
+    
+
 
 
         <script src="js/generarPDF.js"> </script>
