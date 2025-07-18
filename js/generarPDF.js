@@ -6,7 +6,34 @@ window.onload = function () {
     img.onload = function () {
         logo = img;
     };
+
+    // Eventos para recalcular resta
+    document.getElementById('total').addEventListener('input', actualizarResta);
+    document.getElementById('sena').addEventListener('input', actualizarResta);
+
+    // Evento al primer importe
+    const importes = document.getElementsByName("importe[]");
+    for (let i = 0; i < importes.length; i++) {
+        importes[i].addEventListener('input', actualizarTotal);
+    }
 };
+
+function actualizarTotal() {
+    const importes = document.getElementsByName("importe[]");
+    let suma = 0;
+    for (let i = 0; i < importes.length; i++) {
+        let val = parseFloat(importes[i].value);
+        if (!isNaN(val)) suma += val;
+    }
+    document.getElementById('total').value = suma.toFixed(2);
+    actualizarResta();
+}
+
+function actualizarResta() {
+    const total = parseFloat(document.getElementById('total').value) || 0;
+    const sena = parseFloat(document.getElementById('sena').value) || 0;
+    document.getElementById('resta').value = (total - sena).toFixed(2);
+}
 
 function agregarDetalle() {
     const detalleHTML = `
@@ -20,6 +47,10 @@ function agregarDetalle() {
     </div>
     `;
     document.getElementById('detalles').insertAdjacentHTML('beforeend', detalleHTML);
+
+    // Evento para el nuevo importe
+    const nuevosImportes = document.getElementsByName("importe[]");
+    nuevosImportes[nuevosImportes.length - 1].addEventListener('input', actualizarTotal);
 }
 
 function formatearMoneda(numero) {
@@ -27,7 +58,38 @@ function formatearMoneda(numero) {
     return "$ " + parseFloat(numero).toLocaleString("es-AR");
 }
 
+// Validación de campos
+function validarCampos() {
+    const camposObligatorios = [
+        'fecha',
+        'fechaEntrega',
+        'seniores',
+        'domicilio',
+        'localidad',
+        'telefono'
+    ];
+
+    for (let campo of camposObligatorios) {
+        let valor = document.getElementById(campo).value.trim();
+        if (valor === "") {
+            alert("Por favor, complete el campo: " + campo);
+            return false;
+        }
+    }
+
+    // Al menos un detalle
+    const detalles = document.getElementsByName("detalle[]");
+    if (detalles.length === 0 || detalles[0].value.trim() === "") {
+        alert("Por favor, ingrese al menos un detalle del pedido.");
+        return false;
+    }
+
+    return true;
+}
+
 async function generarPDF() {
+    if (!validarCampos()) return;
+
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF();
 
@@ -47,7 +109,7 @@ async function generarPDF() {
     const detalles = document.getElementsByName("detalle[]");
     const importes = document.getElementsByName("importe[]");
 
-    // Encabezado texto
+    // Encabezado
     doc.setFontSize(16);
     doc.setTextColor(97, 95, 95);
     doc.text("NOTA DE PEDIDO", 60, 25);
@@ -64,46 +126,38 @@ async function generarPDF() {
     doc.text(`Teléfono: ${telefono}`, 20, 82);
 
     // Tabla dinámica
-    let cantidadFilas = detalles.length;
-    let filaAltura = 10;
-    let tablaInicioY = 100;
-    let tablaFinY = tablaInicioY + (cantidadFilas + 1) * filaAltura;
+    let yTabla = 100;
 
+    // Cabecera
     doc.setDrawColor(0);
     doc.setLineWidth(0.2);
-
-    doc.line(20, tablaInicioY, 20, tablaFinY);
-    doc.line(150, tablaInicioY, 150, tablaFinY);
-    doc.line(190, tablaInicioY, 190, tablaFinY);
-
-    
-
-        // Línea superior de la tabla (encima del encabezado)
-    doc.line(20, tablaInicioY, 190, tablaInicioY);
-
-    // Línea debajo del encabezado (separador)
-    doc.line(20, tablaInicioY + filaAltura, 190, tablaInicioY + filaAltura);
-
-
-
-    for (let i = 1; i <= cantidadFilas; i++) {
-        let y = tablaInicioY + filaAltura * (i + 1);
-        doc.line(20, y, 190, y);
-    }
+    doc.rect(20, yTabla, 170, 10);
+    doc.line(150, yTabla, 150, yTabla + 10);
 
     doc.setFontSize(10);
-    doc.text("DETALLE", 25, tablaInicioY + 7);
-    doc.text("IMPORTE", 155, tablaInicioY + 7);
+    doc.text("DETALLE", 25, yTabla + 7);
+    doc.text("IMPORTE", 185, yTabla + 7, { align: 'right' });
 
-    let yData = tablaInicioY + filaAltura * 2;
-    for (let i = 0; i < cantidadFilas; i++) {
-        doc.text(detalles[i].value, 22, yData);
-        doc.text(formatearMoneda(importes[i].value), 188, yData, { align: 'right' });
-        yData += filaAltura;
+    yTabla += 10;
+
+    // Filas de datos
+    for (let i = 0; i < detalles.length; i++) {
+        let detalleTexto = doc.splitTextToSize(detalles[i].value, 120);
+        let alturaFila = detalleTexto.length * 5 * 2;
+
+        // Marco de la fila
+        doc.rect(20, yTabla, 170, alturaFila);
+        doc.line(150, yTabla, 150, yTabla + alturaFila);
+
+        // Texto dentro de la fila
+        doc.text(detalleTexto, 24, yTabla + 6);
+        doc.text(formatearMoneda(importes[i].value), 186, yTabla + 6, { align: 'right' });
+
+        yTabla += alturaFila;
     }
 
     // Totales
-    let totalesInicioY = tablaFinY + 5;
+    let totalesInicioY = yTabla + 5;
     doc.rect(150, totalesInicioY, 40, 10);
     doc.rect(150, totalesInicioY + 10, 40, 10);
     doc.rect(150, totalesInicioY + 20, 40, 10);
@@ -121,8 +175,7 @@ async function generarPDF() {
     doc.text("Lunes a Viernes de 8:00 a 17:00 - Sábados de 9:00 a 13:00", 20, 275);
     doc.text("www.surmaderas.com.ar - info@surmaderas.com.ar", 20, 280);
 
-    // ⚠ El logo lo agregamos AL FINAL:
-    doc.addImage(logo, 'PNG', 15, 15, 25, 25);
+    if (logo) doc.addImage(logo, 'PNG', 15, 15, 25, 25);
 
     doc.save("nota_pedido.pdf");
 }
