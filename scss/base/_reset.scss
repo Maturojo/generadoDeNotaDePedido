@@ -1,12 +1,8 @@
 @use '../utils/variables' as vars;
 
-:root {
-    --bs-body-bg: #615f5f;
-}
-
 
 body {
-    background-color: vars.$primary-color !important;
+    background-color: vars.$primary-color ;
     margin: 0; // eliminamos márgenes del navegador
     padding: 0; // un padding suave, no 200px
     
