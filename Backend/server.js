@@ -2,7 +2,7 @@ const express = require('express');
 const xlsx = require('xlsx');
 const path = require('path');
 const mongoose = require('mongoose');
-const cors = require('cors'); // <-- Importa cors
+const fs = require('fs');
 require('dotenv').config(); // Render usa automáticamente las variables de entorno del panel
 
 const app = express();
@@ -11,8 +11,13 @@ const PORT = process.env.PORT || 3000;
 // Middleware para JSON
 app.use(express.json());
 
-// Habilitar CORS
-app.use(cors()); // <-- Esto habilita CORS para todos los dominios
+// Permitir CORS
+app.use((req, res, next) => {
+    res.header("Access-Control-Allow-Origin", "*");
+    res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
+    res.header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE");
+    next();
+});
 
 // === CONEXIÓN A MONGODB ===
 const MONGO_URI = process.env.MONGO_URI;
@@ -55,18 +60,35 @@ app.get('/', (req, res) => {
     res.send('API funcionando en Render 🚀');
 });
 
-// === ENDPOINT PARA PRODUCTOS (Excel) ===
+// === ENDPOINT PARA PRODUCTOS (Excel con fallback) ===
 app.get('/productos', (req, res) => {
     try {
         const filePath = path.join(__dirname, 'data', 'productos.xlsx');
-        const workbook = xlsx.readFile(filePath);
-        const sheet = workbook.Sheets[workbook.SheetNames[0]];
-        const productos = xlsx.utils.sheet_to_json(sheet);
-        res.json(productos);
+
+        if (fs.existsSync(filePath)) {
+            const workbook = xlsx.readFile(filePath);
+            const sheet = workbook.Sheets[workbook.SheetNames[0]];
+            const productos = xlsx.utils.sheet_to_json(sheet);
+
+            if (Array.isArray(productos) && productos.length > 0) {
+                return res.json(productos);
+            } else {
+                console.warn('El archivo Excel está vacío.');
+            }
+        } else {
+            console.warn('El archivo Excel no existe en el servidor.');
+        }
     } catch (error) {
         console.error('Error leyendo Excel:', error);
-        res.status(500).json({ error: 'No se pudo leer el archivo Excel' });
     }
+
+    // Fallback: devolver productos de prueba
+    const productosPrueba = [
+        { codigo: "P001", detalle: "Producto de prueba 1", precio: 100 },
+        { codigo: "P002", detalle: "Producto de prueba 2", precio: 200 },
+        { codigo: "P003", detalle: "Producto de prueba 3", precio: 300 },
+    ];
+    res.json(productosPrueba);
 });
 
 // === CRUD CLIENTES ===
