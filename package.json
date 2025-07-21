@@ -1,24 +1,27 @@
 {
   "name": "generadordenota",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "description": "Generador de notas de pedido con Node.js, Express y MongoDB Atlas",
+  "main": "Backend/server.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "node Backend/server.js"
   },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/Maturojo/generadoDeNotaDePedido.git"
   },
   "keywords": [],
-  "author": "",
+  "author": "Matías Rojo",
   "license": "ISC",
   "bugs": {
     "url": "https://github.com/Maturojo/generadoDeNotaDePedido/issues"
   },
   "homepage": "https://github.com/Maturojo/generadoDeNotaDePedido#readme",
   "dependencies": {
+    "dotenv": "^17.2.0",
     "express": "^5.1.0",
+    "mongodb": "^6.17.0",
+    "mongoose": "^8.16.4",
     "xlsx": "^0.18.5"
   }
 }
