@@ -5,7 +5,7 @@
   "main": "Backend/server.js",
   "scripts": {
     "start": "node Backend/server.js",
-    "build:css": "sass scss:css"
+    "build:css": "sass scss:Frontend/css"
   },
   "repository": {
     "type": "git",
