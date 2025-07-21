@@ -1,4 +1,4 @@
-// ------------------- VARIABLES GLOBALES -------------------
+// ------------------- VARIABLES GLORALES -------------------
 let productos = [];
 let logo = null;
 
@@ -22,6 +22,9 @@ window.onload = function () {
 
     // Listeners
     document.getElementById('sena').addEventListener('input', calcularTotal);
+    document.getElementById('descuento').addEventListener('input', calcularTotal);
+    document.getElementById('tipoPago').addEventListener('change', toggleResta);
+    document.getElementById('descuento').addEventListener('click', solicitarClaveDescuento);
 
     // Formatear y validar teléfono mientras escribe
     const telefonoInput = document.getElementById('telefono');
@@ -29,11 +32,15 @@ window.onload = function () {
         formatearTelefono(e);
         validarTelefonoEnTiempoReal();
     });
+
+    // Listeners iniciales en la primera fila
+    agregarListenersFila(document.querySelector('#detalles .row'));
+    toggleResta();
 };
 
 // ------------------- FORMATEAR Y VALIDAR TELÉFONO -------------------
 function formatearTelefono(e) {
-    let input = e.target.value.replace(/\D/g, ''); // Solo dígitos
+    let input = e.target.value.replace(/\D/g, '');
     if (input.length > 3 && input.length <= 6) {
         e.target.value = `(${input.slice(0, 3)}) ${input.slice(3)}`;
     } else if (input.length > 6) {
@@ -66,6 +73,7 @@ async function cargarProductos() {
         productos = await response.json();
         actualizarSelects();
         inicializarSelect2();
+        habilitarProductoPersonalizado();
     } catch (error) {
         console.error("Error al cargar productos:", error);
         Swal.fire({
@@ -88,6 +96,10 @@ function actualizarSelects() {
             option.dataset.precio = prod.precio;
             select.appendChild(option);
         });
+        const customOption = document.createElement('option');
+        customOption.value = "custom";
+        customOption.textContent = "Producto personalizado";
+        select.appendChild(customOption);
     });
 }
 
@@ -101,12 +113,58 @@ function inicializarSelect2() {
             const precioInput = this.closest('.row').querySelector('.precio');
             if (selectedOption && selectedOption.dataset.precio) {
                 precioInput.value = selectedOption.dataset.precio;
+                calcularTotal();
             }
-            calcularTotal();
+            mostrarInputsPersonalizados(this);
         });
+    }
+    habilitarProductoPersonalizado();
+}
+
+// ------------------- PRODUCTO PERSONALIZADO -------------------
+function habilitarProductoPersonalizado() {
+    document.querySelectorAll('.producto-select').forEach(select => {
+        select.addEventListener('change', function () {
+            mostrarInputsPersonalizados(this);
+        });
+    });
+}
+
+function mostrarInputsPersonalizados(select) {
+    const fila = select.closest('.row');
+    let inputCustom = fila.querySelector('.input-personalizado');
+    let detalleCustom = fila.querySelector('.detalle-personalizado');
+
+    if (select.value === 'custom') {
+        if (!inputCustom) {
+            const inputHTML = document.createElement('input');
+            inputHTML.type = 'text';
+            inputHTML.placeholder = 'Nombre del producto';
+            inputHTML.className = 'form-control mt-2 input-personalizado';
+            select.parentElement.appendChild(inputHTML);
+        }
+        if (!detalleCustom) {
+            const detalleHTML = document.createElement('textarea');
+            detalleHTML.placeholder = 'Detalle del producto';
+            detalleHTML.className = 'form-control mt-2 detalle-personalizado';
+            detalleHTML.rows = 2;
+            select.parentElement.appendChild(detalleHTML);
+        }
+    } else {
+        if (inputCustom) inputCustom.remove();
+        if (detalleCustom) detalleCustom.remove();
     }
 }
 
+// ------------------- LISTENERS DE PRECIO Y CANTIDAD -------------------
+function agregarListenersFila(row) {
+    const precioInput = row.querySelector('.precio');
+    const cantidadInput = row.querySelector('.cantidad');
+    if (precioInput) precioInput.addEventListener('input', calcularTotal);
+    if (cantidadInput) cantidadInput.addEventListener('input', calcularTotal);
+}
+
+// ------------------- AGREGAR FILAS -------------------
 function agregarFilaProducto() {
     const detalles = document.getElementById('detalles');
     const filaHTML = `
@@ -128,8 +186,12 @@ function agregarFilaProducto() {
             </div>
         </div>`;
     detalles.insertAdjacentHTML('beforeend', filaHTML);
+
+    const nuevaFila = detalles.lastElementChild;
+    agregarListenersFila(nuevaFila);
     actualizarSelects();
     inicializarSelect2();
+    habilitarProductoPersonalizado();
 }
 
 // ------------------- CALCULO DE TOTALES -------------------
@@ -140,52 +202,59 @@ function calcularTotal() {
         const cantidad = parseInt(row.querySelector('.cantidad').value) || 0;
         total += precio * cantidad;
     });
+
+    const descuento = parseFloat(document.getElementById('descuento').value) || 0;
+    total = Math.max(total - descuento, 0);
+
     document.getElementById('total').value = total.toFixed(2);
 
     const sena = parseFloat(document.getElementById('sena').value) || 0;
-    document.getElementById('resta').value = (total - sena).toFixed(2);
+    const tipoPago = document.getElementById('tipoPago').value;
+
+    if (tipoPago === "Pago completo") {
+        document.getElementById('resta').value = 0;
+    } else {
+        document.getElementById('resta').value = (total - sena).toFixed(2);
+    }
 }
 
-// ------------------- VALIDACIÓN -------------------
-function validarCampos() {
-    const camposObligatorios = ['fecha', 'fechaEntrega', 'seniores', 'telefono', 'vendedor', 'transferidoA', 'tipoPago'];
-    for (let campo of camposObligatorios) {
-        let valor = document.getElementById(campo)?.value.trim();
-        if (!valor) {
-            Swal.fire({
-                icon: 'warning',
-                title: 'Campo incompleto',
-                text: `Por favor, complete el campo: ${campo}`,
-                confirmButtonText: 'Aceptar'
+function toggleResta() {
+    const tipoPago = document.getElementById('tipoPago').value;
+    const restaCol = document.getElementById('resta-col');
+    restaCol.style.display = (tipoPago === "Pago completo") ? "none" : "block";
+    calcularTotal();
+}
+
+// ------------------- CLAVE PARA DESCUENTO -------------------
+function solicitarClaveDescuento() {
+    const descuentoInput = document.getElementById('descuento');
+    if (!descuentoInput.readOnly) return;
+
+    Swal.fire({
+        title: 'Clave requerida',
+        input: 'password',
+        inputLabel: 'Ingrese la clave para habilitar el descuento',
+        inputPlaceholder: 'Clave...',
+        showCancelButton: true,
+        confirmButtonText: 'Aceptar',
+        cancelButtonText: 'Cancelar',
+        preConfirm: (clave) => {
+            return new Promise((resolve, reject) => {
+                if (clave === '1234') { // Clave configurable
+                    resolve(true);
+                } else {
+                    reject('Clave incorrecta');
+                }
+            }).catch(err => {
+                Swal.showValidationMessage(err);
             });
-            return false;
         }
-    }
-
-    // Validar formato de teléfono
-    const telefono = document.getElementById('telefono').value.trim();
-    const telefonoRegex = /^\(\d{3}\)\s\d{3}\s\d{4}$/;
-    if (!telefonoRegex.test(telefono)) {
-        Swal.fire({
-            icon: 'error',
-            title: 'Teléfono inválido',
-            text: 'Por favor, ingrese un teléfono válido con formato (223) 595 4195.',
-            confirmButtonText: 'Aceptar'
-        });
-        return false;
-    }
-
-    const filas = document.querySelectorAll('#detalles .row');
-    if (filas.length === 0 || !filas[0].querySelector('.producto-select').value) {
-        Swal.fire({
-            icon: 'warning',
-            title: 'Sin productos',
-            text: 'Por favor, ingrese al menos un producto.',
-            confirmButtonText: 'Aceptar'
-        });
-        return false;
-    }
-    return true;
+    }).then((result) => {
+        if (result.isConfirmed) {
+            descuentoInput.readOnly = false;
+            descuentoInput.focus();
+        }
+    });
 }
 
 // ------------------- FECHAS DE ENTREGA -------------------
@@ -232,16 +301,37 @@ function cambiarEntrega() {
     }
 }
 
-// ------------------- CODIGO UNICO -------------------
-function generarCodigoUnico() {
-    const hoy = new Date();
-    const fecha = hoy.getFullYear().toString() +
-                  String(hoy.getMonth() + 1).padStart(2, '0') +
-                  String(hoy.getDate()).padStart(2, '0');
-    let contador = parseInt(localStorage.getItem('contador_' + fecha) || '0') + 1;
-    localStorage.setItem('contador_' + fecha, contador);
-    return `${fecha}-${contador}`;
+// ------------------- VALIDACIÓN -------------------
+function validarCampos() {
+    const camposObligatorios = ['fecha', 'fechaEntrega', 'seniores', 'telefono', 'vendedor', 'transferidoA', 'tipoPago'];
+    for (let campo of camposObligatorios) {
+        let valor = document.getElementById(campo)?.value.trim();
+        if (!valor) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Campo incompleto',
+                text: `Por favor, complete el campo: ${campo}`,
+                confirmButtonText: 'Aceptar'
+            });
+            return false;
+        }
+    }
+    const telefono = document.getElementById('telefono').value.trim();
+    const telefonoRegex = /^\(\d{3}\)\s\d{3}\s\d{4}$/;
+    if (!telefonoRegex.test(telefono)) {
+        Swal.fire({
+            icon: 'error',
+            title: 'Teléfono inválido',
+            text: 'Por favor, ingrese un teléfono válido con formato (223) 595 4195.',
+            confirmButtonText: 'Aceptar'
+        });
+        return false;
+    }
+    return true;
 }
+
+// ------------------- PDF Y WHATSAPP -------------------
+// Mantén las funciones de generarPDF y enviarPorWhatsApp como ya las tenías.
 
 // ------------------- GENERAR PDF -------------------
 function generarPDF() {
@@ -250,13 +340,7 @@ function generarPDF() {
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF();
 
-    // Fondo
-    doc.setFillColor(255, 255, 255);
-    doc.rect(10, 10, 190, 277, 'F');
-
     const codigoNota = generarCodigoUnico();
-
-    // Datos
     const fecha = document.getElementById('fecha').value;
     const fechaEntrega = document.getElementById('fechaEntrega').value;
     const seniores = document.getElementById('seniores').value;
@@ -264,9 +348,10 @@ function generarPDF() {
     const vendedor = document.getElementById('vendedor').value;
     const transferidoA = document.getElementById('transferidoA').value;
     const tipoPago = document.getElementById('tipoPago').value;
-    const total = document.getElementById('total').value;
-    const sena = document.getElementById('sena').value;
-    const resta = document.getElementById('resta').value;
+    const total = parseFloat(document.getElementById('total').value) || 0;
+    const descuento = parseFloat(document.getElementById('descuento').value) || 0;
+    const sena = parseFloat(document.getElementById('sena').value) || 0;
+    const resta = parseFloat(document.getElementById('resta').value) || 0;
 
     // Encabezado
     doc.setFontSize(16);
@@ -284,18 +369,14 @@ function generarPDF() {
     doc.text(`Señores: ${seniores}`, 20, 58);
     doc.text(`Teléfono: ${telefono}`, 20, 66);
     doc.text(`Vendedor: ${vendedor}`, 20, 74);
-    doc.text(`Transferido a: ${transferidoA}`, 20, 82);
+    doc.text(`Medio de pago: ${transferidoA}`, 20, 82);
     doc.text(`Tipo de pago: ${tipoPago}`, 20, 90);
 
     // Tabla de productos
     let yTabla = 110;
-    doc.setDrawColor(0);
-    doc.setLineWidth(0.2);
     doc.rect(20, yTabla, 170, 10);
     doc.line(40, yTabla, 40, yTabla + 10);
     doc.line(150, yTabla, 150, yTabla + 10);
-
-    doc.setFontSize(10);
     doc.text("CANT.", 22, yTabla + 7);
     doc.text("DETALLE", 60, yTabla + 7);
     doc.text("IMPORTE", 185, yTabla + 7, { align: 'right' });
@@ -304,9 +385,18 @@ function generarPDF() {
     const filas = document.querySelectorAll('#detalles .row');
     filas.forEach(fila => {
         const productoSelect = fila.querySelector('.producto-select');
+        let baseProducto = productoSelect.value === 'custom'
+            ? (fila.querySelector('.input-personalizado')?.value || "Producto personalizado")
+            : productoSelect.options[productoSelect.selectedIndex].text;
+
+        let detalleProducto = productoSelect.value === 'custom'
+            ? (fila.querySelector('.detalle-personalizado')?.value || "")
+            : "";
+
+        let textoProducto = detalleProducto ? `${baseProducto} - ${detalleProducto}` : baseProducto;
+
         const cantidad = parseFloat(fila.querySelector('.cantidad').value) || 0;
         const precio = parseFloat(fila.querySelector('.precio').value) || 0;
-        const textoProducto = productoSelect.options[productoSelect.selectedIndex].text;
         let detalleTexto = doc.splitTextToSize(textoProducto, 105);
         let alturaFila = Math.max(detalleTexto.length * 5, 10);
 
@@ -322,18 +412,21 @@ function generarPDF() {
     });
 
     // Totales
-    let totalesInicioY = yTabla + 5;
-    doc.rect(150, totalesInicioY, 40, 10);
-    doc.rect(150, totalesInicioY + 10, 40, 10);
-    doc.rect(150, totalesInicioY + 20, 40, 10);
+    let yTotales = yTabla + 5;
+    if (descuento > 0) {
+        doc.text(`Descuento: $${descuento.toFixed(2)}`, 150, yTotales);
+        yTotales += 10;
+    }
 
-    doc.text("TOTAL $", 110, totalesInicioY + 7);
-    doc.text("SEÑA $", 110, totalesInicioY + 17);
-    doc.text("RESTA $", 110, totalesInicioY + 27);
+    doc.text(`TOTAL: $${total.toFixed(2)}`, 150, yTotales);
+    yTotales += 10;
 
-    doc.text(`$ ${parseFloat(total).toFixed(2)}`, 188, totalesInicioY + 7, { align: 'right' });
-    doc.text(`$ ${parseFloat(sena).toFixed(2)}`, 188, totalesInicioY + 17, { align: 'right' });
-    doc.text(`$ ${parseFloat(resta).toFixed(2)}`, 188, totalesInicioY + 27, { align: 'right' });
+    doc.text(`SEÑA: $${sena.toFixed(2)}`, 150, yTotales);
+    yTotales += 10;
+
+    if (tipoPago !== "Pago completo") {
+        doc.text(`RESTA: $${resta.toFixed(2)}`, 150, yTotales);
+    }
 
     // Logo
     if (logo) doc.addImage(logo, 'PNG', 15, 15, 25, 25);
@@ -341,3 +434,72 @@ function generarPDF() {
     // Guardar PDF
     doc.save(`nota_pedido_${codigoNota}.pdf`);
 }
+
+// ------------------- CODIGO UNICO -------------------
+function generarCodigoUnico() {
+    const hoy = new Date();
+    const fecha = hoy.getFullYear().toString() +
+                  String(hoy.getMonth() + 1).padStart(2, '0') +
+                  String(hoy.getDate()).padStart(2, '0');
+    let contador = parseInt(localStorage.getItem('contador_' + fecha) || '0') + 1;
+    localStorage.setItem('contador_' + fecha, contador);
+    return `${fecha}-${contador}`;
+}
+
+
+// ------------------- ENVIAR POR WHATSAPP -------------------
+function enviarPorWhatsApp() {
+    if (!validarCampos()) return;
+
+    const telefonoCliente = document.getElementById('telefono').value.replace(/\D/g, '');
+    const seniores = document.getElementById('seniores').value;
+    const fechaEntrega = document.getElementById('fechaEntrega').value;
+    const vendedor = document.getElementById('vendedor').value;
+    const tipoPago = document.getElementById('tipoPago').value;
+    const medioPago = document.getElementById('transferidoA').value;
+    const total = document.getElementById('total').value;
+    const descuento = parseFloat(document.getElementById('descuento').value) || 0;
+    const sena = document.getElementById('sena').value;
+    const resta = document.getElementById('resta').value;
+
+    // Productos
+    let mensajeProductos = '';
+    document.querySelectorAll('#detalles .row').forEach(row => {
+        const cantidad = row.querySelector('.cantidad').value || 0;
+        const precio = row.querySelector('.precio').value || 0;
+        let detalleProducto = '';
+
+        const productoSelect = row.querySelector('.producto-select');
+        if (productoSelect.value === 'custom') {
+            const nombre = row.querySelector('.input-personalizado')?.value || 'Producto personalizado';
+            const detalle = row.querySelector('.detalle-personalizado')?.value || '';
+            detalleProducto = `${nombre} (${detalle})`;
+        } else {
+            detalleProducto = productoSelect.options[productoSelect.selectedIndex]?.text || '';
+        }
+
+        mensajeProductos += `• ${detalleProducto} x${cantidad} = $${(cantidad * precio).toFixed(2)}\n`;
+    });
+
+    // Mensaje base
+    let mensaje = `Hola ${seniores}, aquí está el detalle de su pedido:\n\n`;
+    mensaje += `Fecha de entrega: ${fechaEntrega}\n`;
+    mensaje += `Vendedor: ${vendedor}\n`;
+    mensaje += `Medio de pago: ${medioPago}\n`;
+    mensaje += `Tipo de pago: ${tipoPago}\n\n`;
+    mensaje += `Productos:\n${mensajeProductos}\n`;
+    if (descuento > 0) {
+        mensaje += `Descuento: $${descuento.toFixed(2)}\n`;
+    }
+    mensaje += `Total: $${total}\n`;
+    mensaje += `Seña: $${sena}\n`;
+    if (tipoPago !== "Pago completo") {
+        mensaje += `Resta: $${resta}\n`;
+    }
+    mensaje += `\n¡Gracias por su compra!`;
+
+    // Crear enlace
+    const url = `https://wa.me/549${telefonoCliente}?text=${encodeURIComponent(mensaje)}`;
+    window.open(url, '_blank');
+}
+

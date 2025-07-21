@@ -15,23 +15,22 @@
     <!-- sweetalert2 -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
-
     <!-- jsPDF para generar el PDF -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 </head>
 <body>
     <div class="container mt-5 p-4">
-        <h2 class="mb-4 text-center" >Generador de Nota de Pedido - Sur Maderas</h2>
+        <h2 class="mb-4 text-center">Generador de Nota de Pedido - Sur Maderas</h2>
 
         <form id="formulario">
             <!-- Fechas -->
             <div class="row mb-3">
                 <div class="col">
-                    <label >Fecha:</label>
+                    <label>Fecha:</label>
                     <input type="date" class="form-control" id="fecha">
                 </div>
                 <div class="col">
-                    <label >Entrega para el día:</label>
+                    <label>Entrega para el día:</label>
                     <select class="form-control" id="opcionEntrega" onchange="cambiarEntrega()">
                         <option value="15">15 días hábiles</option>
                         <option value="20">20 días hábiles</option>
@@ -47,11 +46,11 @@
                 <input type="text" class="form-control" id="seniores">
             </div>
             <div class="mb-3">
-                <label >Teléfono:</label>
+                <label>Teléfono:</label>
                 <input type="text" class="form-control" id="telefono">
                 <span id="error-telefono" class="text-danger" style="display:none; font-size: 0.9em;">Formato inválido. Ejemplo: (223) 595 4195</span>
             </div>
-            
+
             <!-- Dropdown de vendedores -->
             <div class="mb-3">
                 <label>Vendedor:</label>
@@ -67,21 +66,20 @@
                 </select>
             </div>
 
+            <!-- Medio de pago -->
             <div class="mb-3">
-                <label >Transferido a:</label>
+                <label>Medio de pago:</label>
                 <select class="form-control" id="transferidoA">
                     <option value="">Seleccione una opción</option>
-                    <option value="Marcelo">Marcelo</option>
-                    <option value="Fito">Fito</option>
-                    <option value="Gustavo">Gustavo</option>
-                    <option value="Surmaderas">Surmaderas</option>
-                    <option value="Juani">Juani</option>
-                    <option value="Lar">Lar</option>
+                    <option value="Efectivo">Efectivo</option>
+                    <option value="Transferencia">Transferencia</option>
+                    <option value="Tarjeta">Tarjeta</option>
                 </select>
             </div>
 
+            <!-- Tipo de pago -->
             <div class="mb-3">
-                <label >Tipo de pago:</label>
+                <label>Tipo de pago:</label>
                 <select class="form-control" id="tipoPago">
                     <option value="">Seleccione una opción</option>
                     <option value="Pago completo">Pago completo</option>
@@ -97,7 +95,6 @@
                         <select class="form-control producto-select" name="producto[]">
                             <option value="">Seleccione un producto</option>
                             <option value="custom">Producto personalizado</option>
-
                         </select>
                     </div>
                     <div class="col-md-2">
@@ -121,11 +118,15 @@
                     <input type="number" class="form-control" id="total" readonly>
                 </div>
                 <div class="col">
-                    <label >Seña $:</label>
-                    <input type="number" class="form-control" id="sena">
+                    <label>Descuento $:</label>
+                    <input type="number" class="form-control" id="descuento" value="0" min="0" readonly>
                 </div>
                 <div class="col">
-                    <label >Resta $:</label>
+                    <label>Seña $:</label>
+                    <input type="number" class="form-control" id="sena" value="0" min="0">
+                </div>
+                <div class="col" id="resta-col">
+                    <label>Resta $:</label>
                     <input type="number" class="form-control" id="resta" readonly>
                 </div>
             </div>
@@ -138,6 +139,5 @@
 
     <!-- Scripts -->
     <script src="js/main.js"></script>
-    <script src="js/generarPDF.js"></script>
 </body>
 </html>
