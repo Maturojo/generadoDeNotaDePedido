@@ -1,3 +1,5 @@
+import { API_URL } from './config.js';
+
 // ------------------- VARIABLES GLOBALES -------------------
 let productos = [];
 let logo = null;
@@ -63,24 +65,11 @@ function validarTelefonoEnTiempoReal() {
 // ------------------- CARGA DE PRODUCTOS -------------------
 async function cargarProductos() {
     try {
-        const response = await fetch('https://generadodenotadepedido.onrender.com/productos');
-        const data = await response.json();
-        console.log('Respuesta de /productos:', data);
-
-        if (Array.isArray(data)) {
-            productos = data;
-            actualizarSelects();
-            inicializarSelect2();
-            habilitarProductoPersonalizado();
-        } else {
-            console.error('La respuesta de productos no es un array:', data);
-            Swal.fire({
-                icon: 'error',
-                title: 'Error',
-                text: 'La lista de productos no es válida. Verifique el servidor.',
-                confirmButtonText: 'Aceptar'
-            });
-        }
+        const response = await fetch(`${API_URL}/productos`);
+        productos = await response.json();
+        actualizarSelects();
+        inicializarSelect2();
+        habilitarProductoPersonalizado();
     } catch (error) {
         console.error("Error al cargar productos:", error);
         Swal.fire({
@@ -93,8 +82,6 @@ async function cargarProductos() {
 }
 
 function actualizarSelects() {
-    if (!Array.isArray(productos)) return;
-
     const selects = document.querySelectorAll('.producto-select');
     selects.forEach(select => {
         select.innerHTML = '<option value="">Seleccione un producto</option>';
@@ -345,6 +332,7 @@ function generarPDF() {
 
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF();
+
     const codigoNota = generarCodigoUnico();
     const fecha = document.getElementById('fecha').value;
     const fechaEntrega = document.getElementById('fechaEntrega').value;
@@ -358,6 +346,7 @@ function generarPDF() {
     const sena = parseFloat(document.getElementById('sena').value) || 0;
     const resta = parseFloat(document.getElementById('resta').value) || 0;
 
+    // Título
     doc.setFontSize(16);
     doc.setTextColor(97, 95, 95);
     doc.text("NOTA DE PEDIDO", 60, 25);
@@ -366,6 +355,7 @@ function generarPDF() {
     doc.setFontSize(11);
     doc.text(`Código: ${codigoNota}`, 60, 39);
 
+    // Datos generales
     doc.setFontSize(10);
     doc.text(`Fecha: ${fecha}`, 20, 50);
     doc.text(`Entrega: ${fechaEntrega}`, 120, 50);
@@ -375,6 +365,7 @@ function generarPDF() {
     doc.text(`Medio de pago: ${transferidoA}`, 20, 82);
     doc.text(`Tipo de pago: ${tipoPago}`, 20, 90);
 
+    // Tabla de productos
     let yTabla = 110;
     doc.rect(20, yTabla, 170, 10);
     doc.line(40, yTabla, 40, yTabla + 10);
@@ -390,14 +381,16 @@ function generarPDF() {
         const inputCustom = fila.querySelector('.input-personalizado')?.value.trim();
         const detalleCustom = fila.querySelector('.detalle-personalizado')?.value.trim();
         let baseProducto = "";
+        let detalleProducto = "";
 
         if (productoSelect.value === 'custom' || (inputCustom && inputCustom.length > 0)) {
             baseProducto = inputCustom || "Producto sin nombre";
+            detalleProducto = detalleCustom || "";
         } else {
             baseProducto = productoSelect.options[productoSelect.selectedIndex]?.text || "Sin producto";
         }
 
-        let textoProducto = detalleCustom ? `${baseProducto} - ${detalleCustom}` : baseProducto;
+        let textoProducto = detalleProducto ? `${baseProducto} - ${detalleProducto}` : baseProducto;
         const cantidad = parseFloat(fila.querySelector('.cantidad').value) || 0;
         const precio = parseFloat(fila.querySelector('.precio').value) || 0;
         let detalleTexto = doc.splitTextToSize(textoProducto, 105);
@@ -414,6 +407,7 @@ function generarPDF() {
         yTabla += alturaFila;
     });
 
+    // Totales
     let yTotales = yTabla + 5;
     if (descuento > 0) {
         doc.text(`Descuento: $${descuento.toFixed(2)}`, 150, yTotales);
@@ -434,6 +428,7 @@ function generarPDF() {
     doc.save(`nota_pedido_${codigoNota}.pdf`);
 }
 
+
 // ------------------- CODIGO UNICO -------------------
 function generarCodigoUnico() {
     const hoy = new Date();
@@ -444,6 +439,7 @@ function generarCodigoUnico() {
     localStorage.setItem('contador_' + fecha, contador);
     return `${fecha}-${contador}`;
 }
+
 
 // ------------------- ENVIAR POR WHATSAPP -------------------
 function enviarPorWhatsApp() {
@@ -479,26 +475,23 @@ function enviarPorWhatsApp() {
         mensajeProductos += `• ${detalleProducto} x${cantidad} = $${(cantidad * precio).toFixed(2)}\n`;
     });
 
-    let mensaje = `Hola ${seniores}, aquí está el detalle de su pedido:\n\n` +
-                  `Fecha de entrega: ${fechaEntrega}\n` +
-                  `Vendedor: ${vendedor}\n` +
-                  `Medio de pago: ${medioPago}\n` +
-                  `Tipo de pago: ${tipoPago}\n\n` +
-                  `Productos:\n${mensajeProductos}\n`;
-
+    let mensaje = `Hola ${seniores}, aquí está el detalle de su pedido:\n\n`;
+    mensaje += `Fecha de entrega: ${fechaEntrega}\n`;
+    mensaje += `Vendedor: ${vendedor}\n`;
+    mensaje += `Medio de pago: ${medioPago}\n`;
+    mensaje += `Tipo de pago: ${tipoPago}\n\n`;
+    mensaje += `Productos:\n${mensajeProductos}\n`;
     if (descuento > 0) {
         mensaje += `Descuento: $${descuento.toFixed(2)}\n`;
     }
-
-    mensaje += `Total: $${total}\n` +
-               `Seña: $${sena}\n`;
-
+    mensaje += `Total: $${total}\n`;
+    mensaje += `Seña: $${sena}\n`;
     if (tipoPago !== "Pago completo") {
         mensaje += `Resta: $${resta}\n`;
     }
-
     mensaje += `\n¡Gracias por su compra!`;
 
     const url = `https://wa.me/549${telefonoCliente}?text=${encodeURIComponent(mensaje)}`;
     window.open(url, '_blank');
 }
+
