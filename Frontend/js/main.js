@@ -20,8 +20,44 @@ window.onload = function () {
     actualizarOpcionesEntrega();
     cambiarEntrega();
 
+    // Listeners
     document.getElementById('sena').addEventListener('input', calcularTotal);
+
+    // Formatear y validar teléfono mientras escribe
+    const telefonoInput = document.getElementById('telefono');
+    telefonoInput.addEventListener('input', function (e) {
+        formatearTelefono(e);
+        validarTelefonoEnTiempoReal();
+    });
 };
+
+// ------------------- FORMATEAR Y VALIDAR TELÉFONO -------------------
+function formatearTelefono(e) {
+    let input = e.target.value.replace(/\D/g, ''); // Solo dígitos
+    if (input.length > 3 && input.length <= 6) {
+        e.target.value = `(${input.slice(0, 3)}) ${input.slice(3)}`;
+    } else if (input.length > 6) {
+        e.target.value = `(${input.slice(0, 3)}) ${input.slice(3, 6)} ${input.slice(6, 10)}`;
+    } else {
+        e.target.value = input;
+    }
+}
+
+function validarTelefonoEnTiempoReal() {
+    const telefonoInput = document.getElementById('telefono');
+    const errorTelefono = document.getElementById('error-telefono');
+    const telefonoRegex = /^\(\d{3}\)\s\d{3}\s\d{4}$/;
+
+    if (telefonoRegex.test(telefonoInput.value.trim())) {
+        telefonoInput.classList.remove('is-invalid');
+        telefonoInput.classList.add('is-valid');
+        errorTelefono.style.display = 'none';
+    } else {
+        telefonoInput.classList.remove('is-valid');
+        telefonoInput.classList.add('is-invalid');
+        errorTelefono.style.display = 'block';
+    }
+}
 
 // ------------------- CARGA DE PRODUCTOS -------------------
 async function cargarProductos() {
@@ -115,6 +151,15 @@ function validarCampos() {
             return false;
         }
     }
+
+    // Validar formato de teléfono
+    const telefono = document.getElementById('telefono').value.trim();
+    const telefonoRegex = /^\(\d{3}\)\s\d{3}\s\d{4}$/;
+    if (!telefonoRegex.test(telefono)) {
+        alert("Por favor, ingrese un teléfono válido con formato (223) 595 4195.");
+        return false;
+    }
+
     const filas = document.querySelectorAll('#detalles .row');
     if (filas.length === 0 || !filas[0].querySelector('.producto-select').value) {
         alert("Por favor, ingrese al menos un producto.");
