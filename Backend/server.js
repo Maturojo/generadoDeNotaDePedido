@@ -63,7 +63,7 @@ app.get('/', (req, res) => {
 // === ENDPOINT PRODUCTOS ===
 app.get('/productos', (req, res) => {
     try {
-        const filePath = path.join(__dirname, 'data', 'productos.xlsx');
+        const filePath = path.join(__dirname, 'Data', 'productos.xlsx');
 
         if (!fs.existsSync(filePath)) {
             console.error(`Archivo Excel no encontrado en ${filePath}`);
