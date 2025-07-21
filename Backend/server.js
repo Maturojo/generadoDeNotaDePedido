@@ -2,6 +2,7 @@ const express = require('express');
 const xlsx = require('xlsx');
 const path = require('path');
 const mongoose = require('mongoose');
+const cors = require('cors'); // <-- Importa cors
 require('dotenv').config(); // Render usa automáticamente las variables de entorno del panel
 
 const app = express();
@@ -10,13 +11,8 @@ const PORT = process.env.PORT || 3000;
 // Middleware para JSON
 app.use(express.json());
 
-// Permitir CORS (para que el frontend pueda acceder al backend)
-app.use((req, res, next) => {
-    res.header("Access-Control-Allow-Origin", "*");
-    res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
-    res.header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE");
-    next();
-});
+// Habilitar CORS
+app.use(cors()); // <-- Esto habilita CORS para todos los dominios
 
 // === CONEXIÓN A MONGODB ===
 const MONGO_URI = process.env.MONGO_URI;
