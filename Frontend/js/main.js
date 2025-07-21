@@ -68,7 +68,12 @@ async function cargarProductos() {
         inicializarSelect2();
     } catch (error) {
         console.error("Error al cargar productos:", error);
-        alert("No se pudieron cargar los productos. Verifique el servidor.");
+        Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: 'No se pudieron cargar los productos. Verifique el servidor.',
+            confirmButtonText: 'Aceptar'
+        });
     }
 }
 
@@ -147,7 +152,12 @@ function validarCampos() {
     for (let campo of camposObligatorios) {
         let valor = document.getElementById(campo)?.value.trim();
         if (!valor) {
-            alert("Por favor, complete el campo: " + campo);
+            Swal.fire({
+                icon: 'warning',
+                title: 'Campo incompleto',
+                text: `Por favor, complete el campo: ${campo}`,
+                confirmButtonText: 'Aceptar'
+            });
             return false;
         }
     }
@@ -156,13 +166,23 @@ function validarCampos() {
     const telefono = document.getElementById('telefono').value.trim();
     const telefonoRegex = /^\(\d{3}\)\s\d{3}\s\d{4}$/;
     if (!telefonoRegex.test(telefono)) {
-        alert("Por favor, ingrese un teléfono válido con formato (223) 595 4195.");
+        Swal.fire({
+            icon: 'error',
+            title: 'Teléfono inválido',
+            text: 'Por favor, ingrese un teléfono válido con formato (223) 595 4195.',
+            confirmButtonText: 'Aceptar'
+        });
         return false;
     }
 
     const filas = document.querySelectorAll('#detalles .row');
     if (filas.length === 0 || !filas[0].querySelector('.producto-select').value) {
-        alert("Por favor, ingrese al menos un producto.");
+        Swal.fire({
+            icon: 'warning',
+            title: 'Sin productos',
+            text: 'Por favor, ingrese al menos un producto.',
+            confirmButtonText: 'Aceptar'
+        });
         return false;
     }
     return true;
