@@ -3,7 +3,7 @@ const xlsx = require('xlsx');
 const path = require('path');
 const mongoose = require('mongoose');
 const fs = require('fs');
-require('dotenv').config(); // Render usa automáticamente las variables de entorno del panel
+require('dotenv').config();
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -11,7 +11,7 @@ const PORT = process.env.PORT || 3000;
 // Middleware para JSON
 app.use(express.json());
 
-// Permitir CORS
+// Middleware CORS
 app.use((req, res, next) => {
     res.header("Access-Control-Allow-Origin", "*");
     res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
@@ -30,7 +30,7 @@ mongoose.connect(MONGO_URI)
     .then(() => console.log('Conectado a MongoDB Atlas'))
     .catch((err) => console.error('Error de conexión a MongoDB:', err));
 
-// === MODELOS DE MONGOOSE ===
+// === MODELOS ===
 const ClienteSchema = new mongoose.Schema({
     nombre: { type: String, required: true },
     telefono: String,
@@ -55,40 +55,34 @@ const NotaPedidoSchema = new mongoose.Schema({
 });
 const NotaPedido = mongoose.model('NotaPedido', NotaPedidoSchema);
 
-// === RUTA RAÍZ PARA PRUEBAS ===
+// === RUTA ROOT ===
 app.get('/', (req, res) => {
     res.send('API funcionando en Render 🚀');
 });
 
-// === ENDPOINT PARA PRODUCTOS (Excel con fallback) ===
+// === ENDPOINT PRODUCTOS ===
 app.get('/productos', (req, res) => {
     try {
         const filePath = path.join(__dirname, 'data', 'productos.xlsx');
 
-        if (fs.existsSync(filePath)) {
-            const workbook = xlsx.readFile(filePath);
-            const sheet = workbook.Sheets[workbook.SheetNames[0]];
-            const productos = xlsx.utils.sheet_to_json(sheet);
-
-            if (Array.isArray(productos) && productos.length > 0) {
-                return res.json(productos);
-            } else {
-                console.warn('El archivo Excel está vacío.');
-            }
-        } else {
-            console.warn('El archivo Excel no existe en el servidor.');
+        if (!fs.existsSync(filePath)) {
+            console.error(`Archivo Excel no encontrado en ${filePath}`);
+            return res.status(500).json({ error: 'No se encontró el archivo productos.xlsx' });
         }
+
+        const workbook = xlsx.readFile(filePath);
+        const sheet = workbook.Sheets[workbook.SheetNames[0]];
+        const productos = xlsx.utils.sheet_to_json(sheet);
+
+        if (!Array.isArray(productos) || productos.length === 0) {
+            return res.status(500).json({ error: 'El archivo productos.xlsx está vacío o mal formateado' });
+        }
+
+        res.json(productos);
     } catch (error) {
         console.error('Error leyendo Excel:', error);
+        res.status(500).json({ error: 'No se pudo leer el archivo Excel' });
     }
-
-    // Fallback: devolver productos de prueba
-    const productosPrueba = [
-        { codigo: "P001", detalle: "Producto de prueba 1", precio: 100 },
-        { codigo: "P002", detalle: "Producto de prueba 2", precio: 200 },
-        { codigo: "P003", detalle: "Producto de prueba 3", precio: 300 },
-    ];
-    res.json(productosPrueba);
 });
 
 // === CRUD CLIENTES ===
