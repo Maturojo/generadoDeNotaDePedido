@@ -2,7 +2,7 @@ const express = require('express');
 const xlsx = require('xlsx');
 const path = require('path');
 const mongoose = require('mongoose');
-require('dotenv').config(); // Render usa automáticamente las variables del panel
+require('dotenv').config(); // Render usa automáticamente las variables de entorno del panel
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -53,6 +53,11 @@ const NotaPedidoSchema = new mongoose.Schema({
     estado: { type: String, default: 'pendiente' }
 });
 const NotaPedido = mongoose.model('NotaPedido', NotaPedidoSchema);
+
+// === RUTA RAÍZ PARA PRUEBAS ===
+app.get('/', (req, res) => {
+    res.send('API funcionando en Render 🚀');
+});
 
 // === ENDPOINT PARA PRODUCTOS (Excel) ===
 app.get('/productos', (req, res) => {
