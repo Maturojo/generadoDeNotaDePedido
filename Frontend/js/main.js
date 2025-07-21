@@ -1,39 +1,33 @@
-// ------------------- VARIABLES GLORALES -------------------
+// ------------------- VARIABLES GLOBALES -------------------
 let productos = [];
 let logo = null;
 
 // ------------------- INICIALIZACIÓN -------------------
 window.onload = function () {
-    // Cargar logo
     const img = new Image();
     img.src = 'assets/logo-linea-gris.png';
     img.onload = function () {
         logo = img;
     };
 
-    // Establecer fecha actual
     const hoy = new Date();
     document.getElementById('fecha').value = hoy.toISOString().split('T')[0];
 
-    // Cargar productos y actualizar fechas
     cargarProductos();
     actualizarOpcionesEntrega();
     cambiarEntrega();
 
-    // Listeners
     document.getElementById('sena').addEventListener('input', calcularTotal);
     document.getElementById('descuento').addEventListener('input', calcularTotal);
     document.getElementById('tipoPago').addEventListener('change', toggleResta);
     document.getElementById('descuento').addEventListener('click', solicitarClaveDescuento);
 
-    // Formatear y validar teléfono mientras escribe
     const telefonoInput = document.getElementById('telefono');
     telefonoInput.addEventListener('input', function (e) {
         formatearTelefono(e);
         validarTelefonoEnTiempoReal();
     });
 
-    // Listeners iniciales en la primera fila
     agregarListenersFila(document.querySelector('#detalles .row'));
     toggleResta();
 };
@@ -240,7 +234,7 @@ function solicitarClaveDescuento() {
         cancelButtonText: 'Cancelar',
         preConfirm: (clave) => {
             return new Promise((resolve, reject) => {
-                if (clave === '1234') { // Clave configurable
+                if (clave === '1234') {
                     resolve(true);
                 } else {
                     reject('Clave incorrecta');
@@ -330,9 +324,6 @@ function validarCampos() {
     return true;
 }
 
-// ------------------- PDF Y WHATSAPP -------------------
-// Mantén las funciones de generarPDF y enviarPorWhatsApp como ya las tenías.
-
 // ------------------- GENERAR PDF -------------------
 function generarPDF() {
     if (!validarCampos()) return;
@@ -353,7 +344,6 @@ function generarPDF() {
     const sena = parseFloat(document.getElementById('sena').value) || 0;
     const resta = parseFloat(document.getElementById('resta').value) || 0;
 
-    // Encabezado
     doc.setFontSize(16);
     doc.setTextColor(97, 95, 95);
     doc.text("NOTA DE PEDIDO", 60, 25);
@@ -362,7 +352,6 @@ function generarPDF() {
     doc.setFontSize(11);
     doc.text(`Código: ${codigoNota}`, 60, 39);
 
-    // Datos cliente
     doc.setFontSize(10);
     doc.text(`Fecha: ${fecha}`, 20, 50);
     doc.text(`Entrega: ${fechaEntrega}`, 120, 50);
@@ -372,7 +361,6 @@ function generarPDF() {
     doc.text(`Medio de pago: ${transferidoA}`, 20, 82);
     doc.text(`Tipo de pago: ${tipoPago}`, 20, 90);
 
-    // Tabla de productos
     let yTabla = 110;
     doc.rect(20, yTabla, 170, 10);
     doc.line(40, yTabla, 40, yTabla + 10);
@@ -385,16 +373,19 @@ function generarPDF() {
     const filas = document.querySelectorAll('#detalles .row');
     filas.forEach(fila => {
         const productoSelect = fila.querySelector('.producto-select');
-        let baseProducto = productoSelect.value === 'custom'
-            ? (fila.querySelector('.input-personalizado')?.value || "Producto personalizado")
-            : productoSelect.options[productoSelect.selectedIndex].text;
+        const inputCustom = fila.querySelector('.input-personalizado')?.value.trim();
+        const detalleCustom = fila.querySelector('.detalle-personalizado')?.value.trim();
+        let baseProducto = "";
+        let detalleProducto = "";
 
-        let detalleProducto = productoSelect.value === 'custom'
-            ? (fila.querySelector('.detalle-personalizado')?.value || "")
-            : "";
+        if (productoSelect.value === 'custom' || (inputCustom && inputCustom.length > 0)) {
+            baseProducto = inputCustom || "Producto sin nombre";
+            detalleProducto = detalleCustom || "";
+        } else {
+            baseProducto = productoSelect.options[productoSelect.selectedIndex]?.text || "Sin producto";
+        }
 
         let textoProducto = detalleProducto ? `${baseProducto} - ${detalleProducto}` : baseProducto;
-
         const cantidad = parseFloat(fila.querySelector('.cantidad').value) || 0;
         const precio = parseFloat(fila.querySelector('.precio').value) || 0;
         let detalleTexto = doc.splitTextToSize(textoProducto, 105);
@@ -411,7 +402,6 @@ function generarPDF() {
         yTabla += alturaFila;
     });
 
-    // Totales
     let yTotales = yTabla + 5;
     if (descuento > 0) {
         doc.text(`Descuento: $${descuento.toFixed(2)}`, 150, yTotales);
@@ -428,10 +418,7 @@ function generarPDF() {
         doc.text(`RESTA: $${resta.toFixed(2)}`, 150, yTotales);
     }
 
-    // Logo
     if (logo) doc.addImage(logo, 'PNG', 15, 15, 25, 25);
-
-    // Guardar PDF
     doc.save(`nota_pedido_${codigoNota}.pdf`);
 }
 
@@ -445,7 +432,6 @@ function generarCodigoUnico() {
     localStorage.setItem('contador_' + fecha, contador);
     return `${fecha}-${contador}`;
 }
-
 
 // ------------------- ENVIAR POR WHATSAPP -------------------
 function enviarPorWhatsApp() {
@@ -462,26 +448,25 @@ function enviarPorWhatsApp() {
     const sena = document.getElementById('sena').value;
     const resta = document.getElementById('resta').value;
 
-    // Productos
     let mensajeProductos = '';
     document.querySelectorAll('#detalles .row').forEach(row => {
         const cantidad = row.querySelector('.cantidad').value || 0;
         const precio = row.querySelector('.precio').value || 0;
+        const productoSelect = row.querySelector('.producto-select');
+        const inputCustom = row.querySelector('.input-personalizado')?.value.trim();
+        const detalleCustom = row.querySelector('.detalle-personalizado')?.value.trim();
         let detalleProducto = '';
 
-        const productoSelect = row.querySelector('.producto-select');
-        if (productoSelect.value === 'custom') {
-            const nombre = row.querySelector('.input-personalizado')?.value || 'Producto personalizado';
-            const detalle = row.querySelector('.detalle-personalizado')?.value || '';
-            detalleProducto = `${nombre} (${detalle})`;
+        if (productoSelect.value === 'custom' || (inputCustom && inputCustom.length > 0)) {
+            const nombre = inputCustom || 'Producto sin nombre';
+            detalleProducto = detalleCustom ? `${nombre} (${detalleCustom})` : nombre;
         } else {
-            detalleProducto = productoSelect.options[productoSelect.selectedIndex]?.text || '';
+            detalleProducto = productoSelect.options[productoSelect.selectedIndex]?.text || 'Sin producto';
         }
 
         mensajeProductos += `• ${detalleProducto} x${cantidad} = $${(cantidad * precio).toFixed(2)}\n`;
     });
 
-    // Mensaje base
     let mensaje = `Hola ${seniores}, aquí está el detalle de su pedido:\n\n`;
     mensaje += `Fecha de entrega: ${fechaEntrega}\n`;
     mensaje += `Vendedor: ${vendedor}\n`;
@@ -498,8 +483,6 @@ function enviarPorWhatsApp() {
     }
     mensaje += `\n¡Gracias por su compra!`;
 
-    // Crear enlace
     const url = `https://wa.me/549${telefonoCliente}?text=${encodeURIComponent(mensaje)}`;
     window.open(url, '_blank');
 }
-
