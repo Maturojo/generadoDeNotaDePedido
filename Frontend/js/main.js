@@ -64,10 +64,23 @@ function validarTelefonoEnTiempoReal() {
 async function cargarProductos() {
     try {
         const response = await fetch('https://generadodenotadepedido.onrender.com/productos');
-        productos = await response.json();
-        actualizarSelects();
-        inicializarSelect2();
-        habilitarProductoPersonalizado();
+        const data = await response.json();
+        console.log('Respuesta de /productos:', data);
+
+        if (Array.isArray(data)) {
+            productos = data;
+            actualizarSelects();
+            inicializarSelect2();
+            habilitarProductoPersonalizado();
+        } else {
+            console.error('La respuesta de productos no es un array:', data);
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: 'La lista de productos no es válida. Verifique el servidor.',
+                confirmButtonText: 'Aceptar'
+            });
+        }
     } catch (error) {
         console.error("Error al cargar productos:", error);
         Swal.fire({
@@ -80,6 +93,8 @@ async function cargarProductos() {
 }
 
 function actualizarSelects() {
+    if (!Array.isArray(productos)) return;
+
     const selects = document.querySelectorAll('.producto-select');
     selects.forEach(select => {
         select.innerHTML = '<option value="">Seleccione un producto</option>';
@@ -325,10 +340,165 @@ function validarCampos() {
 }
 
 // ------------------- GENERAR PDF -------------------
-// (Aquí continúa tu función generarPDF sin cambios)
+function generarPDF() {
+    if (!validarCampos()) return;
+
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+    const codigoNota = generarCodigoUnico();
+    const fecha = document.getElementById('fecha').value;
+    const fechaEntrega = document.getElementById('fechaEntrega').value;
+    const seniores = document.getElementById('seniores').value;
+    const telefono = document.getElementById('telefono').value;
+    const vendedor = document.getElementById('vendedor').value;
+    const transferidoA = document.getElementById('transferidoA').value;
+    const tipoPago = document.getElementById('tipoPago').value;
+    const total = parseFloat(document.getElementById('total').value) || 0;
+    const descuento = parseFloat(document.getElementById('descuento').value) || 0;
+    const sena = parseFloat(document.getElementById('sena').value) || 0;
+    const resta = parseFloat(document.getElementById('resta').value) || 0;
+
+    doc.setFontSize(16);
+    doc.setTextColor(97, 95, 95);
+    doc.text("NOTA DE PEDIDO", 60, 25);
+    doc.setFontSize(12);
+    doc.text("SUR MADERAS", 60, 32);
+    doc.setFontSize(11);
+    doc.text(`Código: ${codigoNota}`, 60, 39);
+
+    doc.setFontSize(10);
+    doc.text(`Fecha: ${fecha}`, 20, 50);
+    doc.text(`Entrega: ${fechaEntrega}`, 120, 50);
+    doc.text(`Señores: ${seniores}`, 20, 58);
+    doc.text(`Teléfono: ${telefono}`, 20, 66);
+    doc.text(`Vendedor: ${vendedor}`, 20, 74);
+    doc.text(`Medio de pago: ${transferidoA}`, 20, 82);
+    doc.text(`Tipo de pago: ${tipoPago}`, 20, 90);
+
+    let yTabla = 110;
+    doc.rect(20, yTabla, 170, 10);
+    doc.line(40, yTabla, 40, yTabla + 10);
+    doc.line(150, yTabla, 150, yTabla + 10);
+    doc.text("CANT.", 22, yTabla + 7);
+    doc.text("DETALLE", 60, yTabla + 7);
+    doc.text("IMPORTE", 185, yTabla + 7, { align: 'right' });
+    yTabla += 10;
+
+    const filas = document.querySelectorAll('#detalles .row');
+    filas.forEach(fila => {
+        const productoSelect = fila.querySelector('.producto-select');
+        const inputCustom = fila.querySelector('.input-personalizado')?.value.trim();
+        const detalleCustom = fila.querySelector('.detalle-personalizado')?.value.trim();
+        let baseProducto = "";
+
+        if (productoSelect.value === 'custom' || (inputCustom && inputCustom.length > 0)) {
+            baseProducto = inputCustom || "Producto sin nombre";
+        } else {
+            baseProducto = productoSelect.options[productoSelect.selectedIndex]?.text || "Sin producto";
+        }
+
+        let textoProducto = detalleCustom ? `${baseProducto} - ${detalleCustom}` : baseProducto;
+        const cantidad = parseFloat(fila.querySelector('.cantidad').value) || 0;
+        const precio = parseFloat(fila.querySelector('.precio').value) || 0;
+        let detalleTexto = doc.splitTextToSize(textoProducto, 105);
+        let alturaFila = Math.max(detalleTexto.length * 5, 10);
+
+        doc.rect(20, yTabla, 170, alturaFila);
+        doc.line(40, yTabla, 40, yTabla + alturaFila);
+        doc.line(150, yTabla, 150, yTabla + alturaFila);
+
+        doc.text(String(cantidad), 30, yTabla + 6);
+        doc.text(detalleTexto, 45, yTabla + 6);
+        doc.text(`$ ${(cantidad * precio).toFixed(2)}`, 188, yTabla + 6, { align: 'right' });
+
+        yTabla += alturaFila;
+    });
+
+    let yTotales = yTabla + 5;
+    if (descuento > 0) {
+        doc.text(`Descuento: $${descuento.toFixed(2)}`, 150, yTotales);
+        yTotales += 10;
+    }
+
+    doc.text(`TOTAL: $${total.toFixed(2)}`, 150, yTotales);
+    yTotales += 10;
+
+    doc.text(`SEÑA: $${sena.toFixed(2)}`, 150, yTotales);
+    yTotales += 10;
+
+    if (tipoPago !== "Pago completo") {
+        doc.text(`RESTA: $${resta.toFixed(2)}`, 150, yTotales);
+    }
+
+    if (logo) doc.addImage(logo, 'PNG', 15, 15, 25, 25);
+    doc.save(`nota_pedido_${codigoNota}.pdf`);
+}
 
 // ------------------- CODIGO UNICO -------------------
-// (Aquí continúa tu función generarCodigoUnico sin cambios)
+function generarCodigoUnico() {
+    const hoy = new Date();
+    const fecha = hoy.getFullYear().toString() +
+                  String(hoy.getMonth() + 1).padStart(2, '0') +
+                  String(hoy.getDate()).padStart(2, '0');
+    let contador = parseInt(localStorage.getItem('contador_' + fecha) || '0') + 1;
+    localStorage.setItem('contador_' + fecha, contador);
+    return `${fecha}-${contador}`;
+}
 
 // ------------------- ENVIAR POR WHATSAPP -------------------
-// (Aquí continúa tu función enviarPorWhatsApp sin cambios)
+function enviarPorWhatsApp() {
+    if (!validarCampos()) return;
+
+    const telefonoCliente = document.getElementById('telefono').value.replace(/\D/g, '');
+    const seniores = document.getElementById('seniores').value;
+    const fechaEntrega = document.getElementById('fechaEntrega').value;
+    const vendedor = document.getElementById('vendedor').value;
+    const tipoPago = document.getElementById('tipoPago').value;
+    const medioPago = document.getElementById('transferidoA').value;
+    const total = document.getElementById('total').value;
+    const descuento = parseFloat(document.getElementById('descuento').value) || 0;
+    const sena = document.getElementById('sena').value;
+    const resta = document.getElementById('resta').value;
+
+    let mensajeProductos = '';
+    document.querySelectorAll('#detalles .row').forEach(row => {
+        const cantidad = row.querySelector('.cantidad').value || 0;
+        const precio = row.querySelector('.precio').value || 0;
+        const productoSelect = row.querySelector('.producto-select');
+        const inputCustom = row.querySelector('.input-personalizado')?.value.trim();
+        const detalleCustom = row.querySelector('.detalle-personalizado')?.value.trim();
+        let detalleProducto = '';
+
+        if (productoSelect.value === 'custom' || (inputCustom && inputCustom.length > 0)) {
+            const nombre = inputCustom || 'Producto sin nombre';
+            detalleProducto = detalleCustom ? `${nombre} (${detalleCustom})` : nombre;
+        } else {
+            detalleProducto = productoSelect.options[productoSelect.selectedIndex]?.text || 'Sin producto';
+        }
+
+        mensajeProductos += `• ${detalleProducto} x${cantidad} = $${(cantidad * precio).toFixed(2)}\n`;
+    });
+
+    let mensaje = `Hola ${seniores}, aquí está el detalle de su pedido:\n\n` +
+                  `Fecha de entrega: ${fechaEntrega}\n` +
+                  `Vendedor: ${vendedor}\n` +
+                  `Medio de pago: ${medioPago}\n` +
+                  `Tipo de pago: ${tipoPago}\n\n` +
+                  `Productos:\n${mensajeProductos}\n`;
+
+    if (descuento > 0) {
+        mensaje += `Descuento: $${descuento.toFixed(2)}\n`;
+    }
+
+    mensaje += `Total: $${total}\n` +
+               `Seña: $${sena}\n`;
+
+    if (tipoPago !== "Pago completo") {
+        mensaje += `Resta: $${resta}\n`;
+    }
+
+    mensaje += `\n¡Gracias por su compra!`;
+
+    const url = `https://wa.me/549${telefonoCliente}?text=${encodeURIComponent(mensaje)}`;
+    window.open(url, '_blank');
+}
