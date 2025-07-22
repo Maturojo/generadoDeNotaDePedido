@@ -206,7 +206,7 @@ function calcularTotal() {
 
     document.getElementById('total').value = total.toFixed(2);
 
-    const sena = parseFloat(document.getElementById('sena').value) || 0;
+    const adelanto = parseFloat(document.getElementById('adelanto').value) || 0;
     const tipoPago = document.getElementById('tipoPago').value;
 
     if (tipoPago === "Pago completo") {
@@ -345,7 +345,7 @@ function generarPDF() {
     const tipoPago = document.getElementById('tipoPago').value;
     const total = parseFloat(document.getElementById('total').value) || 0;
     const descuento = parseFloat(document.getElementById('descuento').value) || 0;
-    const sena = parseFloat(document.getElementById('sena').value) || 0;
+    const adelanto = parseFloat(document.getElementById('adelanto').value) || 0;
     const resta = parseFloat(document.getElementById('resta').value) || 0;
 
     // Título
@@ -425,7 +425,7 @@ function generarPDF() {
         doc.text(`RESTA: $${resta.toFixed(2)}`, 150, yTotales);
         doc.text(`ADELANTO: $${sena.toFixed(2)}`, 150, yTotales);
     yTotales += 10;
-    
+
     }
 
     // Logo
