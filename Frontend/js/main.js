@@ -446,41 +446,46 @@ async function generarPDF() {
     // =======================
     // 2. Enviar al backend
     // =======================
-    try {
-        const formData = new FormData();
-        formData.append("codigo", codigoNota);
-        formData.append("cliente", seniores);
-        formData.append("telefono", telefono);
-        formData.append("vendedor", vendedor);
-        formData.append("fecha", fecha);
-        formData.append("fechaEntrega", fechaEntrega);
-        formData.append("total", total);
-        formData.append("estado", tipoPago);
-        formData.append("productos", JSON.stringify(productos));
-        formData.append("pdf", pdfBlob, `nota_pedido_${codigoNota}.pdf`);
+    // =======================
+// 2. Enviar al backend (SOLO JSON, sin PDF)
+// =======================
+try {
+    const nota = {
+        codigo: codigoNota,
+        cliente: seniores,
+        telefono,
+        vendedor,
+        fecha,
+        fechaEntrega,
+        total,
+        estado: tipoPago,
+        productos
+    };
 
-        const response = await fetch(`${API_URL}/notas`, {
-            method: "POST",
-            body: formData
-        });
+    const response = await fetch(`${API_URL}/notas`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(nota)
+    });
 
-        if (!response.ok) throw new Error("Error al guardar la nota");
+    if (!response.ok) throw new Error("Error al guardar la nota");
 
-        Swal.fire({
-            icon: "success",
-            title: "¡Guardada!",
-            text: "La nota de pedido fue guardada en la base de datos.",
-            confirmButtonText: "OK"
-        });
-    } catch (err) {
-        console.error("Error enviando nota al backend:", err);
-        Swal.fire({
-            icon: "error",
-            title: "Error",
-            text: "No se pudo guardar la nota en la base de datos",
-            confirmButtonText: "OK"
-        });
-    }
+    Swal.fire({
+        icon: "success",
+        title: "¡Guardada!",
+        text: "La nota de pedido fue guardada en la base de datos.",
+        confirmButtonText: "OK"
+    });
+} catch (err) {
+    console.error("Error enviando nota al backend:", err);
+    Swal.fire({
+        icon: "error",
+        title: "Error",
+        text: "No se pudo guardar la nota en la base de datos",
+        confirmButtonText: "OK"
+    });
+}
+
 }
 
 
