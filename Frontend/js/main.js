@@ -438,6 +438,8 @@ function generarNotaProveedor() {
 
     const fecha = document.getElementById('fecha').value;
     const vendedor = document.getElementById('vendedor').value;
+    const fechaEntrega = document.getElementById('fechaEntrega').value;
+    
     const codigoNota = generarCodigoUnico();
 
     // Título
@@ -453,7 +455,7 @@ function generarNotaProveedor() {
     doc.setFontSize(10);
     doc.text(`Fecha: ${fecha}`, 20, 50);
     doc.text(`Vendedor: ${vendedor}`, 120, 50);
-    doc.text(`Entrega: ${fechaEntrega}`, 20, 70);
+    doc.text(`Entrega: ${fechaEntrega}`, 20, 52);
 
     // Tabla de productos (sin precios)
     let yTabla = 70;
