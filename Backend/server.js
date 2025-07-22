@@ -3,14 +3,15 @@ const xlsx = require('xlsx');
 const path = require('path');
 const mongoose = require('mongoose');
 const fs = require('fs');
-const multer = require('multer'); // Para manejar archivos (PDF)
+const multer = require('multer');
 require('dotenv').config();
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Middleware para JSON
+// -------------------- MIDDLEWARE --------------------
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
 // Middleware CORS
 app.use((req, res, next) => {
@@ -20,7 +21,7 @@ app.use((req, res, next) => {
     next();
 });
 
-// === CONEXIÓN A MONGODB ===
+// -------------------- CONEXIÓN A MONGODB --------------------
 const MONGO_URI = process.env.MONGO_URI;
 if (!MONGO_URI) {
     console.error('ERROR: No se encontró MONGO_URI en las variables de entorno');
@@ -31,7 +32,7 @@ mongoose.connect(MONGO_URI)
     .then(() => console.log('Conectado a MongoDB Atlas'))
     .catch((err) => console.error('Error de conexión a MongoDB:', err));
 
-// === MODELOS ===
+// -------------------- MODELOS --------------------
 const ClienteSchema = new mongoose.Schema({
     nombre: { type: String, required: true },
     telefono: String,
@@ -41,8 +42,13 @@ const ClienteSchema = new mongoose.Schema({
 const Cliente = mongoose.model('Cliente', ClienteSchema);
 
 const NotaPedidoSchema = new mongoose.Schema({
-    clienteId: { type: mongoose.Schema.Types.ObjectId, ref: 'Cliente', required: true },
-    fecha: { type: Date, default: Date.now },
+    cliente: String,
+    telefono: String,
+    vendedor: String,
+    fecha: Date,
+    fechaEntrega: Date,
+    total: Number,
+    estado: { type: String, default: 'pendiente' },
     productos: [
         {
             nombre: String,
@@ -51,18 +57,20 @@ const NotaPedidoSchema = new mongoose.Schema({
             subtotal: Number
         }
     ],
-    total: Number,
-    estado: { type: String, default: 'pendiente' },
-    pdf: { data: Buffer, contentType: String } // Campo para almacenar PDF
+    pdf: { data: Buffer, contentType: String } // Campo para almacenar el PDF
 });
 const NotaPedido = mongoose.model('NotaPedido', NotaPedidoSchema);
 
-// === RUTA ROOT ===
+// -------------------- MULTER --------------------
+const storage = multer.memoryStorage();
+const upload = multer({ storage: storage });
+
+// -------------------- RUTAS ROOT --------------------
 app.get('/', (req, res) => {
     res.send('API funcionando en Render 🚀');
 });
 
-// === ENDPOINT PRODUCTOS ===
+// -------------------- ENDPOINT PRODUCTOS --------------------
 app.get('/productos', (req, res) => {
     try {
         const filePath = path.join(__dirname, 'Data', 'productos.xlsx');
@@ -87,7 +95,7 @@ app.get('/productos', (req, res) => {
     }
 });
 
-// === CRUD CLIENTES ===
+// -------------------- CRUD CLIENTES --------------------
 app.post('/clientes', async (req, res) => {
     try {
         const cliente = new Cliente(req.body);
@@ -109,52 +117,37 @@ app.get('/clientes', async (req, res) => {
     }
 });
 
-app.put('/clientes/:id', async (req, res) => {
-    try {
-        const cliente = await Cliente.findByIdAndUpdate(req.params.id, req.body, { new: true });
-        res.json(cliente);
-    } catch (error) {
-        console.error('Error actualizando cliente:', error);
-        res.status(500).json({ error: 'Error actualizando cliente' });
-    }
-});
+// -------------------- CRUD NOTAS DE PEDIDO --------------------
 
-app.delete('/clientes/:id', async (req, res) => {
-    try {
-        await Cliente.findByIdAndDelete(req.params.id);
-        res.json({ message: 'Cliente eliminado' });
-    } catch (error) {
-        console.error('Error eliminando cliente:', error);
-        res.status(500).json({ error: 'Error eliminando cliente' });
-    }
-});
-
-// === CRUD NOTAS DE PEDIDO ===
-const upload = multer();
+// Crear nota con PDF
 app.post('/notas', upload.single('pdf'), async (req, res) => {
     try {
-        const { clienteId, fecha, productos, total, estado } = req.body;
+        const { cliente, telefono, vendedor, fecha, fechaEntrega, total, estado, productos } = req.body;
 
-        const nota = new NotaPedido({
-            clienteId,
+        const nuevaNota = new NotaPedido({
+            cliente,
+            telefono,
+            vendedor,
             fecha,
-            productos: JSON.parse(productos),
+            fechaEntrega,
             total,
             estado,
+            productos: JSON.parse(productos),
             pdf: req.file ? { data: req.file.buffer, contentType: req.file.mimetype } : null
         });
 
-        await nota.save();
-        res.json(nota);
+        await nuevaNota.save();
+        res.status(201).json({ message: "Nota de pedido guardada correctamente", nota: nuevaNota });
     } catch (error) {
-        console.error('Error guardando nota de pedido:', error);
-        res.status(500).json({ error: 'Error guardando nota de pedido' });
+        console.error("Error guardando nota de pedido:", error);
+        res.status(500).json({ error: "Error guardando nota de pedido" });
     }
 });
 
+// Listar notas
 app.get('/notas', async (req, res) => {
     try {
-        const notas = await NotaPedido.find().populate('clienteId');
+        const notas = await NotaPedido.find();
         res.json(notas);
     } catch (error) {
         console.error('Error obteniendo notas:', error);
@@ -162,27 +155,22 @@ app.get('/notas', async (req, res) => {
     }
 });
 
-app.put('/notas/:id', async (req, res) => {
+// Descargar PDF de una nota
+app.get('/notas/:id/pdf', async (req, res) => {
     try {
-        const nota = await NotaPedido.findByIdAndUpdate(req.params.id, req.body, { new: true });
-        res.json(nota);
+        const nota = await NotaPedido.findById(req.params.id);
+        if (!nota || !nota.pdf) {
+            return res.status(404).json({ error: "PDF no encontrado" });
+        }
+        res.set('Content-Type', nota.pdf.contentType);
+        res.send(nota.pdf.data);
     } catch (error) {
-        console.error('Error actualizando nota:', error);
-        res.status(500).json({ error: 'Error actualizando nota de pedido' });
+        console.error("Error descargando PDF:", error);
+        res.status(500).json({ error: "Error descargando PDF" });
     }
 });
 
-app.delete('/notas/:id', async (req, res) => {
-    try {
-        await NotaPedido.findByIdAndDelete(req.params.id);
-        res.json({ message: 'Nota de pedido eliminada' });
-    } catch (error) {
-        console.error('Error eliminando nota:', error);
-        res.status(500).json({ error: 'Error eliminando nota de pedido' });
-    }
-});
-
-// === INICIAR SERVIDOR ===
+// -------------------- INICIAR SERVIDOR --------------------
 app.listen(PORT, () => {
     console.log(`Servidor backend corriendo en puerto ${PORT}`);
 });
