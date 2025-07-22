@@ -636,3 +636,8 @@ function enviarPorWhatsApp() {
     window.open(url, '_blank');
 }
 
+function verNotas() {
+    window.location.href = 'notas.html';
+}
+
+

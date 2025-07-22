@@ -3,65 +3,62 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Listado de Notas de Pedido</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <title>Notas de Pedido</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
 </head>
-<body>
-    <div class="container mt-5">
-        <h2 class="text-center">Listado de Notas de Pedido</h2>
-        <table class="table table-striped table-bordered mt-4">
+<body class="p-4">
+    <div class="container">
+        <h1 class="mb-4">Notas de Pedido</h1>
+        <table class="table table-striped">
             <thead>
                 <tr>
-                    <th>Código (ID)</th>
                     <th>Cliente</th>
+                    <th>Teléfono</th>
+                    <th>Vendedor</th>
                     <th>Fecha</th>
                     <th>Total</th>
-                    <th>Estado</th>
-                    <th>Acciones</th>
+                    <th>PDF</th>
                 </tr>
             </thead>
-            <tbody id="tablaNotas">
-                <tr>
-                    <td colspan="6" class="text-center">Cargando notas...</td>
-                </tr>
+            <tbody id="notas-list">
+                <tr><td colspan="6">Cargando...</td></tr>
             </tbody>
         </table>
     </div>
 
     <script>
-        const API_URL = 'http://localhost:3000'; // Cambia esto si tu backend está en otro dominio
+        const API_URL = 'https://generadodenotadepedido.onrender.com'; // Ajusta tu backend URL
 
         async function cargarNotas() {
+            const tbody = document.getElementById('notas-list');
+            tbody.innerHTML = '<tr><td colspan="6">Cargando...</td></tr>';
             try {
                 const response = await fetch(`${API_URL}/notas`);
                 const notas = await response.json();
-                const tabla = document.getElementById('tablaNotas');
-                tabla.innerHTML = '';
 
-                if (!notas || notas.length === 0) {
-                    tabla.innerHTML = `<tr><td colspan="6" class="text-center">No hay notas disponibles</td></tr>`;
+                if (!notas.length) {
+                    tbody.innerHTML = '<tr><td colspan="6">No hay notas disponibles</td></tr>';
                     return;
                 }
 
+                tbody.innerHTML = '';
                 notas.forEach(nota => {
-                    const fecha = new Date(nota.fecha).toLocaleDateString('es-AR');
-                    const cliente = nota.clienteId ? nota.clienteId.nombre : 'Sin cliente';
-                    tabla.innerHTML += `
-                        <tr>
-                            <td>${nota._id}</td>
-                            <td>${cliente}</td>
-                            <td>${fecha}</td>
-                            <td>$${nota.total?.toFixed(2) || '0.00'}</td>
-                            <td>${nota.estado}</td>
-                            <td>
-                                <button class="btn btn-sm btn-primary" onclick="verPDF('${nota._id}')">Ver PDF</button>
-                            </td>
-                        </tr>
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td>${nota.cliente}</td>
+                        <td>${nota.telefono || ''}</td>
+                        <td>${nota.vendedor || ''}</td>
+                        <td>${nota.fecha ? new Date(nota.fecha).toLocaleDateString() : ''}</td>
+                        <td>$${nota.total || 0}</td>
+                        <td>
+                            <button class="btn btn-sm btn-primary" onclick="verPDF('${nota._id}')">Ver PDF</button>
+                        </td>
                     `;
+                    tbody.appendChild(row);
                 });
             } catch (error) {
                 console.error('Error cargando notas:', error);
-                document.getElementById('tablaNotas').innerHTML = `<tr><td colspan="6" class="text-center text-danger">Error al cargar notas</td></tr>`;
+                tbody.innerHTML = '<tr><td colspan="6">Error cargando notas</td></tr>';
             }
         }
 
