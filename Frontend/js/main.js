@@ -637,7 +637,7 @@ function enviarPorWhatsApp() {
 }
 
 function verNotas() {
-    window.location.href = 'notas.html';
+    window.location.href = '/pages/notas.html';
 }
 
 
