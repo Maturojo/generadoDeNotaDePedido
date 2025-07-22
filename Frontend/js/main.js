@@ -468,7 +468,11 @@ try {
         body: JSON.stringify(nota)
     });
 
-    if (!response.ok) throw new Error("Error al guardar la nota");
+    if (!response.ok) {
+        const errorText = await response.text();  // <-- Captura respuesta
+        console.error("Respuesta del backend:", errorText);
+        throw new Error("Error al guardar la nota");
+    }
 
     Swal.fire({
         icon: "success",
@@ -485,6 +489,7 @@ try {
         confirmButtonText: "OK"
     });
 }
+
 
 }
 
