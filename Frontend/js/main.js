@@ -568,15 +568,16 @@ function enviarPorWhatsApp() {
     mensaje += `Fecha de entrega: ${fechaEntrega}\n`;
     mensaje += `Vendedor: ${vendedor}\n`;
     mensaje += `Medio de pago: ${medioPago}\n`;
-    mensaje += `Tipo de pago: ${tipoPago}\n\n`;
+    mensaje += `Estado de pago: ${tipoPago}\n\n`;
     mensaje += `Productos:\n${mensajeProductos}\n`;
     if (descuento > 0) {
         mensaje += `Descuento: $${descuento.toFixed(2)}\n`;
     }
     mensaje += `Total: $${total}\n`;
-    mensaje += `Seña: $${sena}\n`;
+    
     if (tipoPago !== "Pago completo") {
         mensaje += `Resta: $${resta}\n`;
+        mensaje += `Adelanto: $${sena}\n`;
     }
     mensaje += `\n¡Gracias por su compra!`;
 
