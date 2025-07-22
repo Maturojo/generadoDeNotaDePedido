@@ -443,55 +443,52 @@ async function generarPDF() {
     const pdfBlob = doc.output('blob');
     doc.save(`nota_pedido_${codigoNota}.pdf`);
 
+    // Convertir Blob a File para enviar con FormData
+    const pdfFile = new File([pdfBlob], `nota_pedido_${codigoNota}.pdf`, { type: "application/pdf" });
+
     // =======================
     // 2. Enviar al backend
     // =======================
-    // =======================
-// 2. Enviar al backend (SOLO JSON, sin PDF)
-// =======================
-try {
-    const nota = {
-        codigo: codigoNota,
-        cliente: seniores,
-        telefono,
-        vendedor,
-        fecha,
-        fechaEntrega,
-        total,
-        estado: tipoPago,
-        productos
-    };
+    try {
+        const formData = new FormData();
+        formData.append("cliente", seniores);
+        formData.append("telefono", telefono);
+        formData.append("vendedor", vendedor);
+        formData.append("fecha", fecha);
+        formData.append("fechaEntrega", fechaEntrega);
+        formData.append("total", total);
+        formData.append("estado", tipoPago);
+        formData.append("productos", JSON.stringify(productos));
+        formData.append("pdf", pdfFile);
 
-    const response = await fetch(`${API_URL}/notas`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(nota)
-    });
+        const response = await fetch(`${API_URL}/notas`, {
+            method: "POST",
+            body: formData
+        });
 
-    if (!response.ok) {
-        const errorText = await response.text();  // <-- Captura respuesta
-        console.error("Respuesta del backend:", errorText);
-        throw new Error("Error al guardar la nota");
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error("Respuesta del backend:", errorText);
+            throw new Error("Error al guardar la nota");
+        }
+
+        Swal.fire({
+            icon: "success",
+            title: "¡Guardada!",
+            text: "La nota de pedido fue guardada en la base de datos.",
+            confirmButtonText: "OK"
+        });
+    } catch (err) {
+        console.error("Error enviando nota al backend:", err);
+        Swal.fire({
+            icon: "error",
+            title: "Error",
+            text: "No se pudo guardar la nota en la base de datos",
+            confirmButtonText: "OK"
+        });
     }
-
-    Swal.fire({
-        icon: "success",
-        title: "¡Guardada!",
-        text: "La nota de pedido fue guardada en la base de datos.",
-        confirmButtonText: "OK"
-    });
-} catch (err) {
-    console.error("Error enviando nota al backend:", err);
-    Swal.fire({
-        icon: "error",
-        title: "Error",
-        text: "No se pudo guardar la nota en la base de datos",
-        confirmButtonText: "OK"
-    });
 }
 
-
-}
 
 
 // ------------------- GENERAR PDF (Proveedor) -------------------
