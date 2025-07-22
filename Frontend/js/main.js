@@ -419,11 +419,13 @@ function generarPDF() {
     doc.text(`TOTAL: $${total.toFixed(2)}`, 150, yTotales);
     yTotales += 10;
 
-    doc.text(`SEÑA: $${sena.toFixed(2)}`, 150, yTotales);
-    yTotales += 10;
+    
 
     if (tipoPago !== "Pago completo") {
         doc.text(`RESTA: $${resta.toFixed(2)}`, 150, yTotales);
+        doc.text(`ADELANTO: $${sena.toFixed(2)}`, 150, yTotales);
+    yTotales += 10;
+    
     }
 
     // Logo
