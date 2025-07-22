@@ -3,15 +3,15 @@ const xlsx = require('xlsx');
 const path = require('path');
 const mongoose = require('mongoose');
 const fs = require('fs');
-require('dotenv').config();
+const multer = require('multer');
+require('dotenv').config({ path: path.join(__dirname, '../.env') });
+
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Middleware para JSON
+// === Middleware para JSON y CORS ===
 app.use(express.json());
-
-// Middleware CORS
 app.use((req, res, next) => {
     res.header("Access-Control-Allow-Origin", "*");
     res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
@@ -19,7 +19,7 @@ app.use((req, res, next) => {
     next();
 });
 
-// === CONEXIÓN A MONGODB ===
+// === Conexión a MongoDB ===
 const MONGO_URI = process.env.MONGO_URI;
 if (!MONGO_URI) {
     console.error('ERROR: No se encontró MONGO_URI en las variables de entorno');
@@ -51,16 +51,20 @@ const NotaPedidoSchema = new mongoose.Schema({
         }
     ],
     total: Number,
-    estado: { type: String, default: 'pendiente' }
+    estado: { type: String, default: 'pendiente' },
+    pdf: { data: Buffer, contentType: String } // Campo para el PDF
 });
 const NotaPedido = mongoose.model('NotaPedido', NotaPedidoSchema);
+
+// === Configuración Multer para subir PDF ===
+const upload = multer();
 
 // === RUTA ROOT ===
 app.get('/', (req, res) => {
     res.send('API funcionando en Render 🚀');
 });
 
-// === ENDPOINT PRODUCTOS ===
+// === ENDPOINT PRODUCTOS (Excel) ===
 app.get('/productos', (req, res) => {
     try {
         const filePath = path.join(__dirname, 'Data', 'productos.xlsx');
@@ -166,6 +170,43 @@ app.delete('/notas/:id', async (req, res) => {
     } catch (error) {
         console.error('Error eliminando nota:', error);
         res.status(500).json({ error: 'Error eliminando nota de pedido' });
+    }
+});
+
+// === ENDPOINT PARA SUBIR PDF ===
+app.post('/notas/pdf', upload.single('pdf'), async (req, res) => {
+    try {
+        const { clienteId, productos, total, estado } = req.body;
+        const nota = new NotaPedido({
+            clienteId,
+            productos: JSON.parse(productos),
+            total,
+            estado,
+            pdf: {
+                data: req.file.buffer,
+                contentType: req.file.mimetype
+            }
+        });
+        await nota.save();
+        res.json({ success: true, nota });
+    } catch (error) {
+        console.error('Error guardando nota con PDF:', error);
+        res.status(500).json({ error: 'Error guardando nota con PDF' });
+    }
+});
+
+// === ENDPOINT PARA VER PDF ===
+app.get('/notas/:id/pdf', async (req, res) => {
+    try {
+        const nota = await NotaPedido.findById(req.params.id);
+        if (!nota || !nota.pdf || !nota.pdf.data) {
+            return res.status(404).json({ error: 'PDF no encontrado' });
+        }
+        res.contentType(nota.pdf.contentType);
+        res.send(nota.pdf.data);
+    } catch (error) {
+        console.error('Error obteniendo PDF:', error);
+        res.status(500).json({ error: 'Error al obtener PDF' });
     }
 });
 
