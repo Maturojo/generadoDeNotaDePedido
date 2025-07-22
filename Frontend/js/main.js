@@ -426,9 +426,21 @@ function generarPDF() {
         doc.text(`RESTA: $${resta.toFixed(2)}`, 150, yTotales);
     }
 
+    // Logo
     if (logo) doc.addImage(logo, 'PNG', 15, 15, 25, 25);
+
+    // Sello PAGADO
+    if (tipoPago === "Pago completo") {
+        doc.setFontSize(60); // Tamaño grande
+        doc.setTextColor(200, 0, 0); // Rojo tipo sello
+        doc.setFont("helvetica", "bold"); // Negrita
+        doc.text("PAGADO", 105, 150, { align: "center", angle: 45 }); // Centrado y rotado
+    }
+
+    // Guardar PDF
     doc.save(`nota_pedido_${codigoNota}.pdf`);
 }
+
 
 // ------------------- GENERAR PDF (Proveedor) -------------------
 
@@ -439,7 +451,7 @@ function generarNotaProveedor() {
     const fecha = document.getElementById('fecha').value;
     const vendedor = document.getElementById('vendedor').value;
     const fechaEntrega = document.getElementById('fechaEntrega').value;
-    
+    const tipoPago = document.getElementById('tipoPago').value;  // <-- AÑADIDO
     const codigoNota = generarCodigoUnico();
 
     // Título
@@ -498,17 +510,18 @@ function generarNotaProveedor() {
     // Logo
     if (logo) doc.addImage(logo, 'PNG', 15, 15, 25, 25);
 
+    // Sello PAGADO
     if (tipoPago === "Pago completo") {
-        doc.setFontSize(60); // Tamaño grande
-        doc.setTextColor(200, 0, 0); // Rojo tipo sello
-        doc.setFont("helvetica", "bold"); // Negrita
-        doc.text("PAGADO", 105, 150, { align: "center", angle: 45 }); // Centrado y rotado
+        doc.setFontSize(60);
+        doc.setTextColor(200, 0, 0);
+        doc.setFont("helvetica", "bold");
+        doc.text("PAGADO", 105, 150, { align: "center", angle: 45 });
     }
-
 
     // Guardar PDF
     doc.save(`nota_proveedor_${codigoNota}.pdf`);
 }
+
 
 
 // ------------------- CODIGO UNICO -------------------
