@@ -19,7 +19,7 @@ window.onload = function () {
     actualizarOpcionesEntrega();
     cambiarEntrega();
 
-    document.getElementById('sena').addEventListener('input', calcularTotal);
+    document.getElementById('adelanto').addEventListener('input', calcularTotal);
     document.getElementById('descuento').addEventListener('input', calcularTotal);
     document.getElementById('tipoPago').addEventListener('change', toggleResta);
     document.getElementById('descuento').addEventListener('click', solicitarClaveDescuento);
@@ -212,7 +212,7 @@ function calcularTotal() {
     if (tipoPago === "Pago completo") {
         document.getElementById('resta').value = 0;
     } else {
-        document.getElementById('resta').value = (total - sena).toFixed(2);
+        document.getElementById('resta').value = (total - adelanto).toFixed(2);
     }
 }
 
@@ -423,7 +423,7 @@ function generarPDF() {
 
     if (tipoPago !== "Pago completo") {
         doc.text(`RESTA: $${resta.toFixed(2)}`, 150, yTotales);
-        doc.text(`ADELANTO: $${sena.toFixed(2)}`, 150, yTotales);
+        doc.text(`ADELANTO: $${adelanto.toFixed(2)}`, 150, yTotales);
     yTotales += 10;
 
     }
@@ -544,7 +544,7 @@ function enviarPorWhatsApp() {
     const medioPago = document.getElementById('transferidoA').value;
     const total = document.getElementById('total').value;
     const descuento = parseFloat(document.getElementById('descuento').value) || 0;
-    const sena = document.getElementById('sena').value;
+    const adelanto = document.getElementById('adelanto').value;
     const resta = document.getElementById('resta').value;
 
     let mensajeProductos = '';
@@ -579,7 +579,7 @@ function enviarPorWhatsApp() {
     
     if (tipoPago !== "Pago completo") {
         mensaje += `Resta: $${resta}\n`;
-        mensaje += `Adelanto: $${sena}\n`;
+        mensaje += `Adelanto: $${adelanto}\n`;
     }
     mensaje += `\n¡Gracias por su compra!`;
 
