@@ -120,7 +120,8 @@ app.get('/clientes', async (req, res) => {
 // -------------------- CRUD NOTAS DE PEDIDO --------------------
 app.post('/notas', upload.single('pdf'), async (req, res) => {
     try {
-        console.log("Datos recibidos en /notas:", req.body);
+        console.log("BODY:", req.body);
+        console.log("FILE:", req.file);
 
         const { cliente, telefono, vendedor, fecha, fechaEntrega, total, estado, productos } = req.body;
 
@@ -128,11 +129,11 @@ app.post('/notas', upload.single('pdf'), async (req, res) => {
             cliente,
             telefono,
             vendedor,
-            fecha: fecha ? new Date(fecha) : null,
-            fechaEntrega: fechaEntrega ? new Date(fechaEntrega) : null,
-            total: Number(total),
+            fecha: new Date(fecha),
+            fechaEntrega: new Date(fechaEntrega),
+            total,
             estado,
-            productos: JSON.parse(productos),
+            productos: JSON.parse(productos || "[]"),
             pdf: req.file ? { data: req.file.buffer, contentType: req.file.mimetype } : null
         });
 
