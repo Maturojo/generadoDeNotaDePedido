@@ -118,7 +118,7 @@ app.get('/clientes', async (req, res) => {
 });
 
 // -------------------- CRUD NOTAS DE PEDIDO --------------------
-aapp.post('/notas', upload.single('pdf'), async (req, res) => {
+app.post('/notas', upload.single('pdf'), async (req, res) => {
     try {
         console.log("BODY:", req.body);
         console.log("FILE:", req.file);
