@@ -120,10 +120,24 @@ app.get('/clientes', async (req, res) => {
 // -------------------- CRUD NOTAS DE PEDIDO --------------------
 app.post('/notas', upload.single('pdf'), async (req, res) => {
     try {
-        console.log("BODY:", req.body);
-        console.log("FILE:", req.file);
+        console.log("BODY COMPLETO:");
+        console.dir(req.body, { depth: null });
+        console.log("FILE:");
+        console.dir(req.file);
 
-        const { cliente, telefono, vendedor, fecha, fechaEntrega, total, estado, productos } = req.body;
+        let productosData = [];
+        if (req.body.productos) {
+            try {
+                productosData = typeof req.body.productos === 'string'
+                    ? JSON.parse(req.body.productos)
+                    : req.body.productos;
+            } catch (err) {
+                console.error("Error parseando productos:", err);
+                return res.status(400).json({ error: "El campo 'productos' no es un JSON válido." });
+            }
+        }
+
+        const { cliente, telefono, vendedor, fecha, fechaEntrega, total, estado } = req.body;
 
         const nuevaNota = new NotaPedido({
             cliente,
@@ -133,19 +147,17 @@ app.post('/notas', upload.single('pdf'), async (req, res) => {
             fechaEntrega: new Date(fechaEntrega),
             total,
             estado,
-            productos: JSON.parse(productos || "[]"),
+            productos: productosData,
             pdf: req.file ? { data: req.file.buffer, contentType: req.file.mimetype } : null
         });
 
         await nuevaNota.save();
         res.status(201).json({ message: "Nota de pedido guardada correctamente", nota: nuevaNota });
     } catch (error) {
-        console.error("Error guardando nota de pedido:", error); // <-- Mostrará el error real
+        console.error("Error guardando nota de pedido:", error);
         res.status(500).json({ error: `Error guardando nota de pedido: ${error.message}` });
     }
 });
-
-
 
 app.get('/notas', async (req, res) => {
     try {
