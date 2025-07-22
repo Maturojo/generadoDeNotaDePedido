@@ -453,7 +453,7 @@ function generarNotaProveedor() {
     doc.setFontSize(10);
     doc.text(`Fecha: ${fecha}`, 20, 50);
     doc.text(`Vendedor: ${vendedor}`, 120, 50);
-    doc.text(`Entrega: ${fechaEntrega}`, 120, 50);
+    doc.text(`Entrega: ${fechaEntrega}`, 150, 50);
 
     // Tabla de productos (sin precios)
     let yTabla = 70;
