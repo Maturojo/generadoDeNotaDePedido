@@ -118,7 +118,7 @@ app.get('/clientes', async (req, res) => {
 });
 
 // -------------------- CRUD NOTAS DE PEDIDO --------------------
-app.post('/notas', upload.single('pdf'), async (req, res) => {
+aapp.post('/notas', upload.single('pdf'), async (req, res) => {
     try {
         console.log("BODY:", req.body);
         console.log("FILE:", req.file);
@@ -140,10 +140,11 @@ app.post('/notas', upload.single('pdf'), async (req, res) => {
         await nuevaNota.save();
         res.status(201).json({ message: "Nota de pedido guardada correctamente", nota: nuevaNota });
     } catch (error) {
-        console.error("Error guardando nota de pedido:", error);
-        res.status(500).json({ error: "Error guardando nota de pedido" });
+        console.error("Error guardando nota de pedido:", error); // <-- Mostrará el error real
+        res.status(500).json({ error: `Error guardando nota de pedido: ${error.message}` });
     }
 });
+
 
 
 app.get('/notas', async (req, res) => {
