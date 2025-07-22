@@ -431,11 +431,12 @@ function generarPDF() {
 
     // Sello PAGADO
     if (tipoPago === "Pago completo") {
-        doc.setFontSize(60); // Tamaño grande
-        doc.setTextColor(200, 0, 0); // Rojo tipo sello
-        doc.setFont("helvetica", "bold"); // Negrita
-        doc.text("PAGADO", 105, 150, { align: "center", angle: 45 }); // Centrado y rotado
-    }
+    doc.setFontSize(30); // Más chico para no tapar
+    doc.setTextColor(0, 0, 0); // Negro
+    doc.setFont("helvetica", "bold");
+    doc.text("PAGADO", 105, 100, { align: "center" }); // Justo antes de la tabla
+}
+
 
     // Guardar PDF
     doc.save(`nota_pedido_${codigoNota}.pdf`);
@@ -510,13 +511,6 @@ function generarNotaProveedor() {
     // Logo
     if (logo) doc.addImage(logo, 'PNG', 15, 15, 25, 25);
 
-    // Sello PAGADO
-    if (tipoPago === "Pago completo") {
-        doc.setFontSize(60);
-        doc.setTextColor(200, 0, 0);
-        doc.setFont("helvetica", "bold");
-        doc.text("PAGADO", 105, 150, { align: "center", angle: 45 });
-    }
 
     // Guardar PDF
     doc.save(`nota_proveedor_${codigoNota}.pdf`);
