@@ -23,6 +23,8 @@ window.onload = function () {
     document.getElementById('descuento').addEventListener('input', calcularTotal);
     document.getElementById('tipoPago').addEventListener('change', toggleResta);
     document.getElementById('descuento').addEventListener('click', solicitarClaveDescuento);
+    document.getElementById("generarProveedor").addEventListener("click", generarNotaProveedor);
+
 
     const telefonoInput = document.getElementById('telefono');
     telefonoInput.addEventListener('input', function (e) {
@@ -427,6 +429,44 @@ function generarPDF() {
     if (logo) doc.addImage(logo, 'PNG', 15, 15, 25, 25);
     doc.save(`nota_pedido_${codigoNota}.pdf`);
 }
+
+// ------------------- GENERAR PDF (Proveedor) -------------------
+
+function generarNotaProveedor() {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+
+    // Logo
+    if (logo) {
+        doc.addImage(logo, "PNG", 10, 10, 50, 15);
+    }
+
+    doc.setFontSize(12);
+    doc.text("Nota de Pedido - Proveedor", 105, 30, { align: "center" });
+
+    // Datos de la nota
+    const fecha = document.getElementById("fecha").value;
+    doc.text(`Fecha: ${fecha}`, 10, 40);
+
+    // Tabla de productos (sin precios)
+    const filas = [];
+    document.querySelectorAll(".producto-row").forEach((row) => {
+        const producto = row.querySelector(".producto-select").selectedOptions[0]?.text || "";
+        const cantidad = row.querySelector(".cantidad-input").value || "";
+        const detalle = row.querySelector(".detalle-input")?.value || "";
+        filas.push([producto, cantidad, detalle]);
+    });
+
+    doc.autoTable({
+        head: [["Producto", "Cantidad", "Detalle"]],
+        body: filas,
+        startY: 50,
+        theme: "grid",
+    });
+
+    doc.save(`nota_proveedor_${fecha}.pdf`);
+}
+
 
 
 // ------------------- CODIGO UNICO -------------------
