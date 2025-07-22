@@ -436,37 +436,68 @@ function generarNotaProveedor() {
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF();
 
-    // Logo
-    if (logo) {
-        doc.addImage(logo, "PNG", 10, 10, 50, 15);
-    }
+    const fecha = document.getElementById('fecha').value;
+    const vendedor = document.getElementById('vendedor').value;
+    const codigoNota = generarCodigoUnico();
 
+    // Título
+    doc.setFontSize(16);
+    doc.setTextColor(97, 95, 95);
+    doc.text("NOTA DE PEDIDO - PROVEEDOR", 40, 25);
     doc.setFontSize(12);
-    doc.text("Nota de Pedido - Proveedor", 105, 30, { align: "center" });
+    doc.text("SUR MADERAS", 40, 32);
+    doc.setFontSize(11);
+    doc.text(`Código: ${codigoNota}`, 40, 39);
 
-    // Datos de la nota
-    const fecha = document.getElementById("fecha").value;
-    doc.text(`Fecha: ${fecha}`, 10, 40);
+    // Datos generales
+    doc.setFontSize(10);
+    doc.text(`Fecha: ${fecha}`, 20, 50);
+    doc.text(`Vendedor: ${vendedor}`, 120, 50);
 
     // Tabla de productos (sin precios)
-    const filas = [];
-    document.querySelectorAll(".producto-row").forEach((row) => {
-        const producto = row.querySelector(".producto-select").selectedOptions[0]?.text || "";
-        const cantidad = row.querySelector(".cantidad-input").value || "";
-        const detalle = row.querySelector(".detalle-input")?.value || "";
-        filas.push([producto, cantidad, detalle]);
+    let yTabla = 70;
+    doc.rect(20, yTabla, 170, 10);
+    doc.line(40, yTabla, 40, yTabla + 10);
+    doc.text("CANT.", 22, yTabla + 7);
+    doc.text("DETALLE", 100, yTabla + 7, { align: 'center' });
+    yTabla += 10;
+
+    const filas = document.querySelectorAll('#detalles .row');
+    filas.forEach(fila => {
+        const cantidad = fila.querySelector('.cantidad').value || 0;
+        const productoSelect = fila.querySelector('.producto-select');
+        const inputCustom = fila.querySelector('.input-personalizado')?.value.trim();
+        const detalleCustom = fila.querySelector('.detalle-personalizado')?.value.trim();
+
+        let textoProducto = '';
+        if (productoSelect.value === 'custom' || (inputCustom && inputCustom.length > 0)) {
+            const base = inputCustom || "Producto sin nombre";
+            textoProducto = detalleCustom ? `${base} - ${detalleCustom}` : base;
+        } else {
+            textoProducto = productoSelect.options[productoSelect.selectedIndex]?.text || "Sin producto";
+        }
+
+        // Ajustar texto
+        let detalleTexto = doc.splitTextToSize(textoProducto, 145);
+        let alturaFila = Math.max(detalleTexto.length * 5, 10);
+
+        // Dibujar celda
+        doc.rect(20, yTabla, 170, alturaFila);
+        doc.line(40, yTabla, 40, yTabla + alturaFila);
+
+        // Texto
+        doc.text(String(cantidad), 30, yTabla + 6);
+        doc.text(detalleTexto, 45, yTabla + 6);
+
+        yTabla += alturaFila;
     });
 
-    doc.autoTable({
-        head: [["Producto", "Cantidad", "Detalle"]],
-        body: filas,
-        startY: 50,
-        theme: "grid",
-    });
+    // Logo
+    if (logo) doc.addImage(logo, 'PNG', 15, 15, 25, 25);
 
-    doc.save(`nota_proveedor_${fecha}.pdf`);
+    // Guardar PDF
+    doc.save(`nota_proveedor_${codigoNota}.pdf`);
 }
-
 
 
 // ------------------- CODIGO UNICO -------------------
