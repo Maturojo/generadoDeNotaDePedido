@@ -57,7 +57,7 @@ const NotaPedidoSchema = new mongoose.Schema({
             subtotal: Number
         }
     ],
-    pdf: { data: Buffer, contentType: String } // Campo para almacenar el PDF
+    pdf: { data: Buffer, contentType: String }
 });
 const NotaPedido = mongoose.model('NotaPedido', NotaPedidoSchema);
 
@@ -118,10 +118,11 @@ app.get('/clientes', async (req, res) => {
 });
 
 // -------------------- CRUD NOTAS DE PEDIDO --------------------
-
-// Crear nota con PDF
 app.post('/notas', upload.single('pdf'), async (req, res) => {
     try {
+        console.log("Datos recibidos en /notas:", req.body);
+        console.log("Archivo PDF:", req.file ? req.file.originalname : "No se envió PDF");
+
         const { cliente, telefono, vendedor, fecha, fechaEntrega, total, estado, productos } = req.body;
 
         const nuevaNota = new NotaPedido({
@@ -144,7 +145,6 @@ app.post('/notas', upload.single('pdf'), async (req, res) => {
     }
 });
 
-// Listar notas
 app.get('/notas', async (req, res) => {
     try {
         const notas = await NotaPedido.find();
@@ -156,33 +156,19 @@ app.get('/notas', async (req, res) => {
 });
 
 // Descargar PDF de una nota
-// Crear nota (sin PDF por ahora)
-app.post('/notas', async (req, res) => {
+app.get('/notas/:id/pdf', async (req, res) => {
     try {
-        const { cliente, telefono, vendedor, fecha, fechaEntrega, total, estado, productos } = req.body;
-
-        // Validamos que productos esté en formato válido
-        const productosArray = typeof productos === "string" ? JSON.parse(productos) : productos;
-
-        const nuevaNota = new NotaPedido({
-            cliente,
-            telefono,
-            vendedor,
-            fecha,
-            fechaEntrega,
-            total,
-            estado,
-            productos: productosArray
-        });
-
-        await nuevaNota.save();
-        res.status(201).json({ message: "Nota de pedido guardada correctamente", nota: nuevaNota });
+        const nota = await NotaPedido.findById(req.params.id);
+        if (!nota || !nota.pdf) {
+            return res.status(404).json({ error: "PDF no encontrado" });
+        }
+        res.set('Content-Type', nota.pdf.contentType);
+        res.send(nota.pdf.data);
     } catch (error) {
-        console.error("Error guardando nota de pedido:", error);
-        res.status(500).json({ error: "Error guardando nota de pedido" });
+        console.error("Error descargando PDF:", error);
+        res.status(500).json({ error: "Error descargando PDF" });
     }
 });
-
 
 // -------------------- INICIAR SERVIDOR --------------------
 app.listen(PORT, () => {
