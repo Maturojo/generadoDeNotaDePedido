@@ -1,4 +1,4 @@
-import { API_URL } from './config.js';
+
 
 // ------------------- VARIABLES GLOBALES -------------------
 let productos = [];
