@@ -329,7 +329,7 @@ function validarCampos() {
 }
 
 // ------------------- GENERAR PDF -------------------
-function generarPDF() {
+async function generarPDF() {
     if (!validarCampos()) return;
 
     const { jsPDF } = window.jspdf;
@@ -348,7 +348,7 @@ function generarPDF() {
     const adelanto = parseFloat(document.getElementById('adelanto').value) || 0;
     const resta = parseFloat(document.getElementById('resta').value) || 0;
 
-    // Título
+    // --- PDF: Cabecera ---
     doc.setFontSize(16);
     doc.setTextColor(97, 95, 95);
     doc.text("NOTA DE PEDIDO", 60, 25);
@@ -357,7 +357,6 @@ function generarPDF() {
     doc.setFontSize(11);
     doc.text(`Código: ${codigoNota}`, 60, 39);
 
-    // Datos generales
     doc.setFontSize(10);
     doc.text(`Fecha: ${fecha}`, 20, 50);
     doc.text(`Entrega: ${fechaEntrega}`, 120, 50);
@@ -367,7 +366,7 @@ function generarPDF() {
     doc.text(`Medio de pago: ${transferidoA}`, 20, 82);
     doc.text(`Tipo de pago: ${tipoPago}`, 20, 90);
 
-    // Tabla de productos
+    // --- PDF: Tabla de productos ---
     let yTabla = 110;
     doc.rect(20, yTabla, 170, 10);
     doc.line(40, yTabla, 40, yTabla + 10);
@@ -377,11 +376,12 @@ function generarPDF() {
     doc.text("IMPORTE", 185, yTabla + 7, { align: 'right' });
     yTabla += 10;
 
-    const filas = document.querySelectorAll('#detalles .row');
-    filas.forEach(fila => {
+    const productosArray = [];
+    document.querySelectorAll('#detalles .row').forEach(fila => {
         const productoSelect = fila.querySelector('.producto-select');
         const inputCustom = fila.querySelector('.input-personalizado')?.value.trim();
         const detalleCustom = fila.querySelector('.detalle-personalizado')?.value.trim();
+
         let baseProducto = "";
         let detalleProducto = "";
 
@@ -406,44 +406,67 @@ function generarPDF() {
         doc.text(detalleTexto, 45, yTabla + 6);
         doc.text(`$ ${(cantidad * precio).toFixed(2)}`, 188, yTabla + 6, { align: 'right' });
 
+        productosArray.push({
+            nombre: textoProducto,
+            cantidad: cantidad,
+            precioUnitario: precio,
+            subtotal: cantidad * precio
+        });
+
         yTabla += alturaFila;
     });
 
-    // Totales
+    // --- PDF: Totales ---
     let yTotales = yTabla + 5;
     if (descuento > 0) {
         doc.text(`Descuento: $${descuento.toFixed(2)}`, 150, yTotales);
         yTotales += 10;
     }
-
     doc.text(`TOTAL: $${total.toFixed(2)}`, 150, yTotales);
     yTotales += 10;
-
-    
 
     if (tipoPago !== "Pago completo") {
         doc.text(`RESTA: $${resta.toFixed(2)}`, 150, yTotales);
         doc.text(`ADELANTO: $${adelanto.toFixed(2)}`, 150, yTotales);
-    yTotales += 10;
-
+        yTotales += 10;
     }
 
-    // Logo
     if (logo) doc.addImage(logo, 'PNG', 15, 15, 25, 25);
 
-    // Sello PAGADO
     if (tipoPago === "Pago completo") {
-    doc.setFontSize(30); // Más chico para no tapar
-    doc.setTextColor(0, 0, 0); // Negro
-    doc.setFont("helvetica", "bold");
-    doc.text("PAGADO", 105, 100, { align: "center" }); // Justo antes de la tabla
-}
+        doc.setFontSize(30);
+        doc.setTextColor(0, 0, 0);
+        doc.setFont("helvetica", "bold");
+        doc.text("PAGADO", 105, 100, { align: "center" });
+    }
 
-
-    // Guardar PDF
+    // --- Guardar PDF en el navegador ---
+    const pdfBlob = doc.output("blob");
     doc.save(`nota_pedido_${codigoNota}.pdf`);
-}
 
+    // --- Enviar al backend ---
+    try {
+        const formData = new FormData();
+        formData.append("clienteId", "64f1234abc1234567890abcd"); // <-- cambiar por el cliente real
+        formData.append("fecha", fecha);
+        formData.append("total", total);
+        formData.append("estado", tipoPago === "Pago completo" ? "pagado" : "pendiente");
+        formData.append("productos", JSON.stringify(productosArray));
+        formData.append("pdf", pdfBlob, `nota_pedido_${codigoNota}.pdf`);
+
+        const res = await fetch(`${API_URL}/notas`, {
+            method: "POST",
+            body: formData
+        });
+
+        const data = await res.json();
+        console.log("Nota guardada en la DB:", data);
+        Swal.fire("Éxito", "La nota se guardó en la base de datos", "success");
+    } catch (err) {
+        console.error("Error enviando nota al backend:", err);
+        Swal.fire("Error", "No se pudo guardar la nota en la base de datos", "error");
+    }
+}
 
 // ------------------- GENERAR PDF (Proveedor) -------------------
 
