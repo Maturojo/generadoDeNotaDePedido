@@ -121,7 +121,6 @@ app.get('/clientes', async (req, res) => {
 app.post('/notas', upload.single('pdf'), async (req, res) => {
     try {
         console.log("Datos recibidos en /notas:", req.body);
-        console.log("Archivo PDF:", req.file ? req.file.originalname : "No se envió PDF");
 
         const { cliente, telefono, vendedor, fecha, fechaEntrega, total, estado, productos } = req.body;
 
@@ -129,9 +128,9 @@ app.post('/notas', upload.single('pdf'), async (req, res) => {
             cliente,
             telefono,
             vendedor,
-            fecha,
-            fechaEntrega,
-            total,
+            fecha: fecha ? new Date(fecha) : null,
+            fechaEntrega: fechaEntrega ? new Date(fechaEntrega) : null,
+            total: Number(total),
             estado,
             productos: JSON.parse(productos),
             pdf: req.file ? { data: req.file.buffer, contentType: req.file.mimetype } : null
@@ -144,6 +143,7 @@ app.post('/notas', upload.single('pdf'), async (req, res) => {
         res.status(500).json({ error: "Error guardando nota de pedido" });
     }
 });
+
 
 app.get('/notas', async (req, res) => {
     try {
