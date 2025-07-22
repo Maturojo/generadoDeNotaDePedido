@@ -156,19 +156,33 @@ app.get('/notas', async (req, res) => {
 });
 
 // Descargar PDF de una nota
-app.get('/notas/:id/pdf', async (req, res) => {
+// Crear nota (sin PDF por ahora)
+app.post('/notas', async (req, res) => {
     try {
-        const nota = await NotaPedido.findById(req.params.id);
-        if (!nota || !nota.pdf) {
-            return res.status(404).json({ error: "PDF no encontrado" });
-        }
-        res.set('Content-Type', nota.pdf.contentType);
-        res.send(nota.pdf.data);
+        const { cliente, telefono, vendedor, fecha, fechaEntrega, total, estado, productos } = req.body;
+
+        // Validamos que productos esté en formato válido
+        const productosArray = typeof productos === "string" ? JSON.parse(productos) : productos;
+
+        const nuevaNota = new NotaPedido({
+            cliente,
+            telefono,
+            vendedor,
+            fecha,
+            fechaEntrega,
+            total,
+            estado,
+            productos: productosArray
+        });
+
+        await nuevaNota.save();
+        res.status(201).json({ message: "Nota de pedido guardada correctamente", nota: nuevaNota });
     } catch (error) {
-        console.error("Error descargando PDF:", error);
-        res.status(500).json({ error: "Error descargando PDF" });
+        console.error("Error guardando nota de pedido:", error);
+        res.status(500).json({ error: "Error guardando nota de pedido" });
     }
 });
+
 
 // -------------------- INICIAR SERVIDOR --------------------
 app.listen(PORT, () => {
