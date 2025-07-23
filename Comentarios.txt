@@ -1,3 +1,1 @@
-git add -A
-git commit -m "subiendo el pagado"
-git push
+git add -A && git commit -m "Buscando el error" && git push
