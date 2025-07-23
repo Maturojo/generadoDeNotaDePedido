@@ -440,16 +440,15 @@ async function generarPDF() {
     // =======================
     // 1. Descargar PDF
     // =======================
-    const pdfBlob = doc.output('blob');
     doc.save(`nota_pedido_${codigoNota}.pdf`);
 
-    // Convertir Blob a File para enviar con FormData
-    const pdfFile = new File([pdfBlob], `nota_pedido_${codigoNota}.pdf`, { type: "application/pdf" });
-
     // =======================
-    // 2. Enviar al backend
+    // 2. Convertir a Blob y enviar al backend
     // =======================
     try {
+        const pdfArrayBuffer = doc.output('arraybuffer');
+        const pdfBlob = new Blob([pdfArrayBuffer], { type: 'application/pdf' });
+
         const formData = new FormData();
         formData.append("cliente", seniores);
         formData.append("telefono", telefono);
@@ -459,7 +458,7 @@ async function generarPDF() {
         formData.append("total", total);
         formData.append("estado", tipoPago);
         formData.append("productos", JSON.stringify(productos));
-        formData.append("pdf", pdfFile);
+        formData.append("pdf", pdfBlob, `nota_pedido_${codigoNota}.pdf`);
 
         const response = await fetch(`${API_URL}/notas`, {
             method: "POST",
@@ -488,6 +487,7 @@ async function generarPDF() {
         });
     }
 }
+s
 
 
 
