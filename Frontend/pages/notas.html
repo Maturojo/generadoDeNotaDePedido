@@ -21,7 +21,7 @@
                 </tr>
             </thead>
             <tbody id="notas-list">
-                <tr><td colspan="6">Cargando...</td></tr>
+                <tr><td colspan="6" class="text-center">Cargando...</td></tr>
             </tbody>
         </table>
     </div>
@@ -31,25 +31,33 @@
 
         async function cargarNotas() {
             const tbody = document.getElementById('notas-list');
-            tbody.innerHTML = '<tr><td colspan="6">Cargando...</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="6" class="text-center">Cargando...</td></tr>';
             try {
                 const response = await fetch(`${API_URL}/notas`);
-                const notas = await response.json();
+                if (!response.ok) throw new Error('Error al obtener las notas del servidor.');
 
-                if (!notas.length) {
-                    tbody.innerHTML = '<tr><td colspan="6">No hay notas disponibles</td></tr>';
+                const notas = await response.json();
+                if (!Array.isArray(notas) || !notas.length) {
+                    tbody.innerHTML = '<tr><td colspan="6" class="text-center">No hay notas disponibles</td></tr>';
                     return;
                 }
 
                 tbody.innerHTML = '';
                 notas.forEach(nota => {
+                    const fecha = nota.fecha 
+                        ? new Date(nota.fecha).toLocaleDateString('es-AR') 
+                        : 'Sin fecha';
+                    const telefono = nota.telefono || 'Sin teléfono';
+                    const vendedor = nota.vendedor || 'N/A';
+                    const total = nota.total ? `$${parseFloat(nota.total).toFixed(2)}` : '$0.00';
+
                     const row = document.createElement('tr');
                     row.innerHTML = `
-                        <td>${nota.cliente}</td>
-                        <td>${nota.telefono || ''}</td>
-                        <td>${nota.vendedor || ''}</td>
-                        <td>${nota.fecha ? new Date(nota.fecha).toLocaleDateString() : ''}</td>
-                        <td>$${nota.total || 0}</td>
+                        <td>${nota.cliente || 'Sin cliente'}</td>
+                        <td>${telefono}</td>
+                        <td>${vendedor}</td>
+                        <td>${fecha}</td>
+                        <td>${total}</td>
                         <td>
                             <button class="btn btn-sm btn-primary" onclick="verPDF('${nota._id}')">Ver PDF</button>
                         </td>
@@ -58,11 +66,15 @@
                 });
             } catch (error) {
                 console.error('Error cargando notas:', error);
-                tbody.innerHTML = '<tr><td colspan="6">Error cargando notas</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="6" class="text-center text-danger">Error cargando notas</td></tr>';
             }
         }
 
         function verPDF(id) {
+            if (!id) {
+                alert('No se puede abrir el PDF. ID no válido.');
+                return;
+            }
             window.open(`${API_URL}/notas/${id}/pdf`, '_blank');
         }
 
