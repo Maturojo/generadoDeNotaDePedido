@@ -26,12 +26,25 @@
         </table>
     </div>
 
-    <script>
-        const API_URL = 'https://generadodenotadepedido.onrender.com'; // Ajusta tu backend URL
+    <!-- Librería jsPDF -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
+    <script>
+        const API_URL = 'https://generadodenotadepedido.onrender.com';
+        let logo = null;
+
+        // Cargar logo para el PDF
+        const img = new Image();
+        img.src = '/assets/logo-linea-gris.png';
+        img.onload = function () {
+            logo = img;
+        };
+
+        // ----------------- CARGAR NOTAS -----------------
         async function cargarNotas() {
             const tbody = document.getElementById('notas-list');
             tbody.innerHTML = '<tr><td colspan="6" class="text-center">Cargando...</td></tr>';
+
             try {
                 const response = await fetch(`${API_URL}/notas`);
                 if (!response.ok) throw new Error('Error al obtener las notas del servidor.');
@@ -59,7 +72,7 @@
                         <td>${fecha}</td>
                         <td>${total}</td>
                         <td>
-                            <button class="btn btn-sm btn-primary" onclick="generarPDF()">Ver PDF</button>
+                            <button class="btn btn-sm btn-primary" onclick='generarPDFDesdeNota(${JSON.stringify(nota)})'>Ver PDF</button>
                         </td>
                     `;
                     tbody.appendChild(row);
@@ -70,100 +83,83 @@
             }
         }
 
-        async function generarPDF() {
-    if (!validarCampos()) return;
+        // ----------------- GENERAR PDF DESDE NOTA -----------------
+        function generarPDFDesdeNota(nota) {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
 
-    const { jsPDF } = window.jspdf;
-    const doc = new jsPDF();
-    const codigoNota = generarCodigoUnico();
-    const datos = obtenerDatosFormulario();
+            const codigoNota = nota.codigoNota || (nota._id || 'SIN-CODIGO');
 
-    // Aseguramos cliente por defecto si está vacío
-    if (!datos.seniores || datos.seniores.trim() === "") {
-        datos.seniores = "Sin cliente";
-    }
+            doc.setFontSize(16);
+            doc.setTextColor(97, 95, 95);
+            doc.text("NOTA DE PEDIDO", 60, 25);
+            doc.setFontSize(12);
+            doc.text("SUR MADERAS", 60, 32);
+            doc.setFontSize(11);
+            doc.text(`Código: ${codigoNota}`, 60, 39);
 
-    // Dibujamos el PDF
-    dibujarPDF(doc, datos, codigoNota);
+            doc.setFontSize(10);
+            doc.text(`Fecha: ${nota.fecha ? new Date(nota.fecha).toLocaleDateString('es-AR') : ''}`, 20, 50);
+            doc.text(`Entrega: ${nota.fechaEntrega || ''}`, 120, 50);
+            doc.text(`Señores: ${nota.cliente || 'Sin cliente'}`, 20, 58);
+            doc.text(`Teléfono: ${nota.telefono || ''}`, 20, 66);
+            doc.text(`Vendedor: ${nota.vendedor || ''}`, 20, 74);
+            doc.text(`Medio de pago: ${nota.transferidoA || ''}`, 20, 82);
+            doc.text(`Tipo de pago: ${nota.estado || ''}`, 20, 90);
 
-    // Guardar en disco
-    doc.save(`nota_pedido_${codigoNota}.pdf`);
+            // Tabla de productos
+            let yTabla = 110;
+            doc.rect(20, yTabla, 170, 10);
+            doc.line(40, yTabla, 40, yTabla + 10);
+            doc.line(150, yTabla, 150, yTabla + 10);
+            doc.text("CANT.", 22, yTabla + 7);
+            doc.text("DETALLE", 60, yTabla + 7);
+            doc.text("IMPORTE", 185, yTabla + 7, { align: 'right' });
+            yTabla += 10;
 
-    // Guardar en backend
-    try {
-        const pdfBlob = doc.output('blob');
-        console.log("Cliente:", datos.seniores);
-        console.log("Código de Nota:", codigoNota);
+            if (nota.productos && Array.isArray(nota.productos)) {
+                nota.productos.forEach(prod => {
+                    const detalleTexto = doc.splitTextToSize(prod.detalle, 105);
+                    const alturaFila = Math.max(detalleTexto.length * 5, 10);
 
-        const formData = prepararFormData(datos, pdfBlob, codigoNota);
-        formData.append("codigoNota", codigoNota); // <-- NUEVO
+                    doc.rect(20, yTabla, 170, alturaFila);
+                    doc.line(40, yTabla, 40, yTabla + alturaFila);
+                    doc.line(150, yTabla, 150, yTabla + alturaFila);
 
-        const response = await fetch(`${API_URL}/notas`, { method: "POST", body: formData });
+                    doc.text(String(prod.cantidad || 0), 30, yTabla + 6);
+                    doc.text(detalleTexto, 45, yTabla + 6);
+                    doc.text(`$ ${(prod.subtotal || 0).toFixed(2)}`, 188, yTabla + 6, { align: 'right' });
 
-        if (!response.ok) {
-            const errorText = await response.text();
-            console.error("Respuesta del backend:", errorText);
-            throw new Error("Error al guardar la nota");
+                    yTabla += alturaFila;
+                });
+            }
+
+            let yTotales = yTabla + 5;
+            if (nota.descuento && nota.descuento > 0) {
+                doc.text(`Descuento: $${parseFloat(nota.descuento).toFixed(2)}`, 150, yTotales);
+                yTotales += 10;
+            }
+
+            doc.text(`TOTAL: $${parseFloat(nota.total || 0).toFixed(2)}`, 150, yTotales);
+            if (nota.estado !== "Pago completo") {
+                yTotales += 10;
+                doc.text(`RESTA: $${parseFloat(nota.resta || 0).toFixed(2)}`, 150, yTotales);
+                doc.text(`ADELANTO: $${parseFloat(nota.adelanto || 0).toFixed(2)}`, 150, yTotales);
+            }
+
+            if (logo) doc.addImage(logo, 'PNG', 15, 15, 25, 25);
+
+            if (nota.estado === "Pago completo") {
+                doc.setFontSize(30);
+                doc.setTextColor(0, 0, 0);
+                doc.setFont("helvetica", "bold");
+                doc.text("PAGADO", 105, 100, { align: "center" });
+            }
+
+            doc.save(`nota_pedido_${codigoNota}.pdf`);
         }
 
-        Swal.fire({ icon: "success", title: "¡Guardada!", text: "La nota fue guardada.", confirmButtonText: "OK" });
-    } catch (err) {
-        console.error("Error enviando nota al backend:", err);
-        Swal.fire({ icon: "error", title: "Error", text: "No se pudo guardar la nota.", confirmButtonText: "OK" });
-    }
-}
-
-// ------------------- OBTENER DATOS DEL FORMULARIO -------------------
-function obtenerDatosFormulario() {
-    const productos = [];
-    const filas = document.querySelectorAll('#detalles .row');
-
-    filas.forEach(fila => {
-        const productoSelect = fila.querySelector('.producto-select');
-        const inputCustom = fila.querySelector('.input-personalizado')?.value.trim();
-        const detalleCustom = fila.querySelector('.detalle-personalizado')?.value.trim();
-
-        let baseProducto = (productoSelect.value === 'custom' || inputCustom) 
-            ? (inputCustom || "Producto sin nombre") 
-            : productoSelect.options[productoSelect.selectedIndex]?.text || "Sin producto";
-
-        let textoProducto = detalleCustom ? `${baseProducto} - ${detalleCustom}` : baseProducto;
-
-        const cantidad = parseFloat(fila.querySelector('.cantidad').value) || 0;
-        const precio = parseFloat(fila.querySelector('.precio').value) || 0;
-        productos.push({ detalle: textoProducto, cantidad, precioUnitario: precio, subtotal: cantidad * precio });
-    });
-
-    return {
-        fecha: document.getElementById('fecha').value,
-        fechaEntrega: document.getElementById('fechaEntrega').value,
-        seniores: document.getElementById('seniores').value || "Sin cliente", // <--- por defecto
-        telefono: document.getElementById('telefono').value,
-        vendedor: document.getElementById('vendedor').value,
-        transferidoA: document.getElementById('transferidoA').value,
-        tipoPago: document.getElementById('tipoPago').value,
-        total: parseFloat(document.getElementById('total').value) || 0,
-        descuento: parseFloat(document.getElementById('descuento').value) || 0,
-        adelanto: parseFloat(document.getElementById('adelanto').value) || 0,
-        resta: parseFloat(document.getElementById('resta').value) || 0,
-        productos
-    };
-}
-
-function generarCodigoUnico() {
-    const hoy = new Date();
-    const fecha = hoy.getFullYear().toString() +
-                  String(hoy.getMonth() + 1).padStart(2, '0') +
-                  String(hoy.getDate()).padStart(2, '0');
-    let contador = parseInt(localStorage.getItem('contador_' + fecha) || '0') + 1;
-    localStorage.setItem('contador_' + fecha, contador);
-    return `${fecha}-${contador}`;
-}
-
-    
+        cargarNotas();
     </script>
-
-    
-    
 </body>
 </html>
