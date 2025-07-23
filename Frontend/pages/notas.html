@@ -4,28 +4,36 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Notas Guardadas</title>
+    
+    <!-- Bootstrap -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    
+    <!-- Estilos personalizados -->
     <link rel="stylesheet" href="../css/styles.css">
+    
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 </head>
-<body>
-    <div class="container">
-        <h1>Notas Guardadas</h1>
-        <table class="table">
-            <thead>
-                <tr>
-                    <th>Cliente</th>
-                    <th>Teléfono</th>
-                    <th>Vendedor</th>
-                    <th>Fecha</th>
-                    <th>Total</th>
-                    <th>Acciones</th>
-                </tr>
-            </thead>
-            <tbody id="tablaNotas">
-                <!-- Aquí se cargarán las notas dinámicamente -->
-            </tbody>
-        </table>
+<body class="bg-light">
+    <div class="container mt-4">
+        <h1 class="text-center mb-4">Notas Guardadas</h1>
+        <div class="table-responsive">
+            <table class="table table-striped table-bordered table-hover align-middle">
+                <thead class="table-dark">
+                    <tr>
+                        <th>Cliente</th>
+                        <th>Teléfono</th>
+                        <th>Vendedor</th>
+                        <th>Fecha</th>
+                        <th>Total</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody id="tablaNotas">
+                    <!-- Notas dinámicas -->
+                </tbody>
+            </table>
+        </div>
     </div>
 
     <script src="../js/config.js"></script>
@@ -48,7 +56,7 @@
                             <td>${nota.fecha || "-"}</td>
                             <td>$${nota.total.toFixed(2)}</td>
                             <td>
-                                <button class="btn btn-primary" onclick="verPDFNota('${nota.codigo}')">Ver PDF</button>
+                                <button class="btn btn-primary btn-sm" onclick="verPDFNota('${nota.codigo}')">Ver PDF</button>
                             </td>
                         </tr>
                     `;
@@ -71,7 +79,7 @@
                 const { jsPDF } = window.jspdf;
                 const doc = new jsPDF();
 
-                // Dibujamos el PDF reutilizando la función de pdf.js
+                // Dibujar PDF usando pdf.js
                 dibujarPDF(doc, nota, nota.codigo);
 
                 // Mostrar en nueva pestaña
