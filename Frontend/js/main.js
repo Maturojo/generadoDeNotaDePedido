@@ -117,7 +117,7 @@ function calcularTotal() {
 function toggleResta() {
     const tipoPago = document.getElementById('tipoPago').value;
     const restaCol = document.getElementById('resta-col');
-    restaCol.style.display = (tipoPago === "Pago completo") ? "none" : "block";
+    restaCol.style.display = (tipoPago === "Pago completo") ? "none" : "block"; 
     calcularTotal();
 }
 

@@ -106,3 +106,60 @@ function dibujarPDF(doc, datos, codigoNota) {
         doc.text("PAGADO", 160, 30, { align: "center" });
     }
 }
+
+// ------------------- GENERAR PDF (Proveedor) -------------------
+function generarNotaProveedor() {
+    if (!validarCampos()) return;
+
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+    const datos = obtenerDatosFormulario();
+    const codigoNota = generarCodigoUnico();
+
+    // Aseguramos un valor por defecto para vendedor
+    if (!datos.vendedor || datos.vendedor.trim() === "") {
+        datos.vendedor = "Sin vendedor";
+    }
+
+    // Encabezado
+    doc.setFontSize(16);
+    doc.setTextColor(97, 95, 95);
+    doc.text("NOTA DE PEDIDO - PROVEEDOR", 40, 25);
+    doc.setFontSize(12);
+    doc.text("SUR MADERAS", 40, 32);
+    doc.setFontSize(11);
+    doc.text(`Código: ${codigoNota}`, 40, 39);
+
+    // Datos principales
+    doc.setFontSize(10);
+    doc.text(`Fecha: ${datos.fecha}`, 20, 50);
+    doc.text(`Vendedor: ${datos.vendedor}`, 120, 50);
+    doc.text(`Entrega: ${datos.fechaEntrega}`, 20, 58);
+
+    // Tabla de productos
+    let yTabla = 70;
+    doc.rect(20, yTabla, 170, 10);
+    doc.line(40, yTabla, 40, yTabla + 10);
+    doc.text("CANT.", 22, yTabla + 7);
+    doc.text("DETALLE", 100, yTabla + 7, { align: 'center' });
+    yTabla += 10;
+
+    datos.productos.forEach(prod => {
+        const textoProducto = prod.detalle;
+        const detalleTexto = doc.splitTextToSize(textoProducto, 145);
+        const alturaFila = Math.max(detalleTexto.length * 5, 10);
+
+        doc.rect(20, yTabla, 170, alturaFila);
+        doc.line(40, yTabla, 40, yTabla + alturaFila);
+
+        doc.text(String(prod.cantidad), 30, yTabla + 6);
+        doc.text(detalleTexto, 45, yTabla + 6);
+
+        yTabla += alturaFila;
+    });
+
+    if (logo) doc.addImage(logo, 'PNG', 15, 15, 25, 25);
+
+    // Guardar PDF
+    doc.save(`nota_proveedor_${codigoNota}.pdf`);
+}
