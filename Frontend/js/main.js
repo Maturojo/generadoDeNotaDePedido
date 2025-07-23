@@ -47,111 +47,10 @@ function formatearTelefono(e) {
     }
 }
 
-function validarTelefonoEnTiempoReal() {
-    const telefonoInput = document.getElementById('telefono');
-    const errorTelefono = document.getElementById('error-telefono');
-    const telefonoRegex = /^\(\d{3}\)\s\d{3}\s\d{4}$/;
 
-    if (telefonoRegex.test(telefonoInput.value.trim())) {
-        telefonoInput.classList.remove('is-invalid');
-        telefonoInput.classList.add('is-valid');
-        errorTelefono.style.display = 'none';
-    } else {
-        telefonoInput.classList.remove('is-valid');
-        telefonoInput.classList.add('is-invalid');
-        errorTelefono.style.display = 'block';
-    }
-}
 
-// ------------------- CARGA DE PRODUCTOS -------------------
-async function cargarProductos() {
-    try {
-        const response = await fetch(`${API_URL}/productos`);
-        productos = await response.json();
-        actualizarSelects();
-        inicializarSelect2();
-        habilitarProductoPersonalizado();
-    } catch (error) {
-        console.error("Error al cargar productos:", error);
-        Swal.fire({
-            icon: 'error',
-            title: 'Error',
-            text: 'No se pudieron cargar los productos. Verifique el servidor.',
-            confirmButtonText: 'Aceptar'
-        });
-    }
-}
 
-function actualizarSelects() {
-    const selects = document.querySelectorAll('.producto-select');
-    selects.forEach(select => {
-        select.innerHTML = '<option value="">Seleccione un producto</option>';
-        productos.forEach(prod => {
-            const option = document.createElement('option');
-            option.value = prod.codigo;
-            option.textContent = `${prod.codigo} - ${prod.detalle} ($${prod.precio})`;
-            option.dataset.precio = prod.precio;
-            select.appendChild(option);
-        });
-        const customOption = document.createElement('option');
-        customOption.value = "custom";
-        customOption.textContent = "Producto personalizado";
-        select.appendChild(customOption);
-    });
-}
 
-function inicializarSelect2() {
-    if (typeof $ !== 'undefined' && $.fn.select2) {
-        $('.producto-select').select2({
-            placeholder: "Seleccione o busque un producto",
-            width: '100%'
-        }).on('select2:select', function () {
-            const selectedOption = this.options[this.selectedIndex];
-            const precioInput = this.closest('.row').querySelector('.precio');
-            if (selectedOption && selectedOption.dataset.precio) {
-                precioInput.value = selectedOption.dataset.precio;
-                calcularTotal();
-            }
-            mostrarInputsPersonalizados(this);
-        });
-    }
-    habilitarProductoPersonalizado();
-}
-
-// ------------------- PRODUCTO PERSONALIZADO -------------------
-function habilitarProductoPersonalizado() {
-    document.querySelectorAll('.producto-select').forEach(select => {
-        select.addEventListener('change', function () {
-            mostrarInputsPersonalizados(this);
-        });
-    });
-}
-
-function mostrarInputsPersonalizados(select) {
-    const fila = select.closest('.row');
-    let inputCustom = fila.querySelector('.input-personalizado');
-    let detalleCustom = fila.querySelector('.detalle-personalizado');
-
-    if (select.value === 'custom') {
-        if (!inputCustom) {
-            const inputHTML = document.createElement('input');
-            inputHTML.type = 'text';
-            inputHTML.placeholder = 'Nombre del producto';
-            inputHTML.className = 'form-control mt-2 input-personalizado';
-            select.parentElement.appendChild(inputHTML);
-        }
-        if (!detalleCustom) {
-            const detalleHTML = document.createElement('textarea');
-            detalleHTML.placeholder = 'Detalle del producto';
-            detalleHTML.className = 'form-control mt-2 detalle-personalizado';
-            detalleHTML.rows = 2;
-            select.parentElement.appendChild(detalleHTML);
-        }
-    } else {
-        if (inputCustom) inputCustom.remove();
-        if (detalleCustom) detalleCustom.remove();
-    }
-}
 
 // ------------------- LISTENERS DE PRECIO Y CANTIDAD -------------------
 function agregarListenersFila(row) {
@@ -223,36 +122,7 @@ function toggleResta() {
 }
 
 // ------------------- CLAVE PARA DESCUENTO -------------------
-function solicitarClaveDescuento() {
-    const descuentoInput = document.getElementById('descuento');
-    if (!descuentoInput.readOnly) return;
 
-    Swal.fire({
-        title: 'Clave requerida',
-        input: 'password',
-        inputLabel: 'Ingrese la clave para habilitar el descuento',
-        inputPlaceholder: 'Clave...',
-        showCancelButton: true,
-        confirmButtonText: 'Aceptar',
-        cancelButtonText: 'Cancelar',
-        preConfirm: (clave) => {
-            return new Promise((resolve, reject) => {
-                if (clave === '1234') {
-                    resolve(true);
-                } else {
-                    reject('Clave incorrecta');
-                }
-            }).catch(err => {
-                Swal.showValidationMessage(err);
-            });
-        }
-    }).then((result) => {
-        if (result.isConfirmed) {
-            descuentoInput.readOnly = false;
-            descuentoInput.focus();
-        }
-    });
-}
 
 // ------------------- FECHAS DE ENTREGA -------------------
 function sumarDiasHabiles(fecha, diasHabiles) {
@@ -359,65 +229,7 @@ async function guardarNota() {
     }
 }
 
-// ------------------- VER PDF -------------------
-function verPDF() {
-    if (!validarCampos()) return;
 
-    const { jsPDF } = window.jspdf;
-    const doc = new jsPDF();
-    const codigoNota = generarCodigoUnico();
-    const datos = obtenerDatosFormulario();
-
-    dibujarPDF(doc, datos, codigoNota);
-
-    const pdfBlob = doc.output('blob');
-    const pdfUrl = URL.createObjectURL(pdfBlob);
-    window.open(pdfUrl, '_blank');
-}
-
-// ------------------- GENERAR PDF -------------------
-async function generarPDF() {
-    if (!validarCampos()) return;
-
-    const { jsPDF } = window.jspdf;
-    const doc = new jsPDF();
-    const codigoNota = generarCodigoUnico();
-    const datos = obtenerDatosFormulario();
-
-    // Aseguramos cliente por defecto si está vacío
-    if (!datos.seniores || datos.seniores.trim() === "") {
-        datos.seniores = "Sin cliente";
-    }
-
-    // Dibujamos el PDF
-    dibujarPDF(doc, datos, codigoNota);
-
-    // Guardar en disco
-    doc.save(`nota_pedido_${codigoNota}.pdf`);
-
-    // Guardar en backend
-    try {
-        const pdfBlob = doc.output('blob');
-        console.log("Cliente:", datos.seniores);
-        console.log("Código de Nota:", codigoNota);
-
-        const formData = prepararFormData(datos, pdfBlob, codigoNota);
-        formData.append("codigoNota", codigoNota); // <-- NUEVO
-
-        const response = await fetch(`${API_URL}/notas`, { method: "POST", body: formData });
-
-        if (!response.ok) {
-            const errorText = await response.text();
-            console.error("Respuesta del backend:", errorText);
-            throw new Error("Error al guardar la nota");
-        }
-
-        Swal.fire({ icon: "success", title: "¡Guardada!", text: "La nota fue guardada.", confirmButtonText: "OK" });
-    } catch (err) {
-        console.error("Error enviando nota al backend:", err);
-        Swal.fire({ icon: "error", title: "Error", text: "No se pudo guardar la nota.", confirmButtonText: "OK" });
-    }
-}
 
 // ------------------- OBTENER DATOS DEL FORMULARIO -------------------
 function obtenerDatosFormulario() {
@@ -457,76 +269,6 @@ function obtenerDatosFormulario() {
 }
 
 
-// ------------------- DIBUJAR PDF -------------------
-function dibujarPDF(doc, datos, codigoNota) {
-    const { fecha, fechaEntrega, seniores, telefono, vendedor, transferidoA, tipoPago, total, descuento, adelanto, resta, productos } = datos;
-
-    doc.setFontSize(16);
-    doc.setTextColor(97, 95, 95);
-    doc.text("NOTA DE PEDIDO", 60, 25);
-    doc.setFontSize(12);
-    doc.text("SUR MADERAS", 60, 32);
-    doc.setFontSize(11);
-    doc.text(`Código: ${codigoNota}`, 60, 39);
-
-    doc.setFontSize(10);
-    doc.text(`Fecha: ${fecha}`, 20, 50);
-    doc.text(`Entrega: ${fechaEntrega}`, 120, 50);
-    doc.text(`Señores: ${seniores}`, 20, 58);
-    doc.text(`Teléfono: ${telefono}`, 20, 66);
-    doc.text(`Vendedor: ${vendedor}`, 20, 74);
-    doc.text(`Medio de pago: ${transferidoA}`, 20, 82);
-    doc.text(`Tipo de pago: ${tipoPago}`, 20, 90);
-
-    let yTabla = 110;
-    doc.rect(20, yTabla, 170, 10);
-    doc.line(40, yTabla, 40, yTabla + 10);
-    doc.line(150, yTabla, 150, yTabla + 10);
-    doc.text("CANT.", 22, yTabla + 7);
-    doc.text("DETALLE", 60, yTabla + 7);
-    doc.text("IMPORTE", 185, yTabla + 7, { align: 'right' });
-    yTabla += 10;
-
-    productos.forEach(prod => {
-        const textoProducto = prod.detalle;
-        const detalleTexto = doc.splitTextToSize(textoProducto, 105);
-        const alturaFila = Math.max(detalleTexto.length * 5, 10);
-
-        doc.rect(20, yTabla, 170, alturaFila);
-        doc.line(40, yTabla, 40, yTabla + alturaFila);
-        doc.line(150, yTabla, 150, yTabla + alturaFila);
-
-        doc.text(String(prod.cantidad), 30, yTabla + 6);
-        doc.text(detalleTexto, 45, yTabla + 6);
-        doc.text(`$ ${(prod.subtotal).toFixed(2)}`, 188, yTabla + 6, { align: 'right' });
-
-        yTabla += alturaFila;
-    });
-
-    let yTotales = yTabla + 5;
-    if (descuento > 0) {
-        doc.text(`Descuento: $${descuento.toFixed(2)}`, 150, yTotales);
-        yTotales += 10;
-    }
-
-    doc.text(`TOTAL: $${total.toFixed(2)}`, 150, yTotales);
-    if (tipoPago !== "Pago completo") {
-        yTotales += 10;
-        doc.text(`RESTA: $${resta.toFixed(2)}`, 150, yTotales);
-        yTotales += 10;
-        doc.text(`ADELANTO: $${adelanto.toFixed(2)}`, 150, yTotales);
-        yTotales += 10;
-    }
-
-    if (logo) doc.addImage(logo, 'PNG', 15, 15, 25, 25);
-
-    if (tipoPago === "Pago completo") {
-        doc.setFontSize(30);
-        doc.setTextColor(0, 0, 0);
-        doc.setFont("helvetica", "bold");
-        doc.text("PAGADO", 160, 30, { align: "center" });
-    }
-}
 
 // ------------------- FUNCIONES AUXILIARES -------------------
 function obtenerDatosFormulario() {
@@ -564,132 +306,12 @@ function obtenerDatosFormulario() {
     };
 }
 
-// ------------------- CODIGO UNICO -------------------
-function generarCodigoUnico() {
-    const hoy = new Date();
-    const fecha = hoy.getFullYear().toString() +
-                  String(hoy.getMonth() + 1).padStart(2, '0') +
-                  String(hoy.getDate()).padStart(2, '0');
-    let contador = parseInt(localStorage.getItem('contador_' + fecha) || '0') + 1;
-    localStorage.setItem('contador_' + fecha, contador);
-    return `${fecha}-${contador}`;
-}
 
-// ------------------- GENERAR PDF (Proveedor) -------------------
-function generarNotaProveedor() {
-    const { jsPDF } = window.jspdf;
-    const doc = new jsPDF();
 
-    const fecha = document.getElementById('fecha').value;
-    const vendedor = document.getElementById('vendedor').value;
-    const fechaEntrega = document.getElementById('fechaEntrega').value;
-    const codigoNota = generarCodigoUnico();
 
-    doc.setFontSize(16);
-    doc.setTextColor(97, 95, 95);
-    doc.text("NOTA DE PEDIDO - PROVEEDOR", 40, 25);
-    doc.setFontSize(12);
-    doc.text("SUR MADERAS", 40, 32);
-    doc.setFontSize(11);
-    doc.text(`Código: ${codigoNota}`, 40, 39);
-
-    doc.setFontSize(10);
-    doc.text(`Fecha: ${fecha}`, 20, 50);
-    doc.text(`Vendedor: ${vendedor}`, 120, 50);
-    doc.text(`Entrega: ${fechaEntrega}`, 20, 58);
-
-    let yTabla = 70;
-    doc.rect(20, yTabla, 170, 10);
-    doc.line(40, yTabla, 40, yTabla + 10);
-    doc.text("CANT.", 22, yTabla + 7);
-    doc.text("DETALLE", 100, yTabla + 7, { align: 'center' });
-    yTabla += 10;
-
-    const filas = document.querySelectorAll('#detalles .row');
-    filas.forEach(fila => {
-        const cantidad = fila.querySelector('.cantidad').value || 0;
-        const productoSelect = fila.querySelector('.producto-select');
-        const inputCustom = fila.querySelector('.input-personalizado')?.value.trim();
-        const detalleCustom = fila.querySelector('.detalle-personalizado')?.value.trim();
-
-        let textoProducto = '';
-        if (productoSelect.value === 'custom' || (inputCustom && inputCustom.length > 0)) {
-            const base = inputCustom || "Producto sin nombre";
-            textoProducto = detalleCustom ? `${base} - ${detalleCustom}` : base;
-        } else {
-            textoProducto = productoSelect.options[productoSelect.selectedIndex]?.text || "Sin producto";
-        }
-
-        let detalleTexto = doc.splitTextToSize(textoProducto, 145);
-        let alturaFila = Math.max(detalleTexto.length * 5, 10);
-
-        doc.rect(20, yTabla, 170, alturaFila);
-        doc.line(40, yTabla, 40, yTabla + alturaFila);
-
-        doc.text(String(cantidad), 30, yTabla + 6);
-        doc.text(detalleTexto, 45, yTabla + 6);
-
-        yTabla += alturaFila;
-    });
-
-    if (logo) doc.addImage(logo, 'PNG', 15, 15, 25, 25);
-    doc.save(`nota_proveedor_${codigoNota}.pdf`);
-}
 
 // ------------------- ENVIAR POR WHATSAPP -------------------
-function enviarPorWhatsApp() {
-    if (!validarCampos()) return;
 
-    const telefonoCliente = document.getElementById('telefono').value.replace(/\D/g, '');
-    const seniores = document.getElementById('seniores').value;
-    const fechaEntrega = document.getElementById('fechaEntrega').value;
-    const vendedor = document.getElementById('vendedor').value;
-    const tipoPago = document.getElementById('tipoPago').value;
-    const medioPago = document.getElementById('transferidoA').value;
-    const total = document.getElementById('total').value;
-    const descuento = parseFloat(document.getElementById('descuento').value) || 0;
-    const adelanto = document.getElementById('adelanto').value;
-    const resta = document.getElementById('resta').value;
-
-    let mensajeProductos = '';
-    document.querySelectorAll('#detalles .row').forEach(row => {
-        const cantidad = row.querySelector('.cantidad').value || 0;
-        const precio = row.querySelector('.precio').value || 0;
-        const productoSelect = row.querySelector('.producto-select');
-        const inputCustom = row.querySelector('.input-personalizado')?.value.trim();
-        const detalleCustom = row.querySelector('.detalle-personalizado')?.value.trim();
-        let detalleProducto = '';
-
-        if (productoSelect.value === 'custom' || (inputCustom && inputCustom.length > 0)) {
-            const nombre = inputCustom || 'Producto sin nombre';
-            detalleProducto = detalleCustom ? `${nombre} (${detalleCustom})` : nombre;
-        } else {
-            detalleProducto = productoSelect.options[productoSelect.selectedIndex]?.text || 'Sin producto';
-        }
-
-        mensajeProductos += `• ${detalleProducto} x${cantidad} = $${(cantidad * precio).toFixed(2)}\n`;
-    });
-
-    let mensaje = `Hola ${seniores}, aquí está el detalle de su pedido:\n\n`;
-    mensaje += `Fecha de entrega: ${fechaEntrega}\n`;
-    mensaje += `Vendedor: ${vendedor}\n`;
-    mensaje += `Medio de pago: ${medioPago}\n`;
-    mensaje += `Estado de pago: ${tipoPago}\n\n`;
-    mensaje += `Productos:\n${mensajeProductos}\n`;
-    if (descuento > 0) {
-        mensaje += `Descuento: $${descuento.toFixed(2)}\n`;
-    }
-    mensaje += `Total: $${total}\n`;
-    
-    if (tipoPago !== "Pago completo") {
-        mensaje += `Resta: $${resta}\n`;
-        mensaje += `Adelanto: $${adelanto}\n`;
-    }
-    mensaje += `\n¡Gracias por su compra!`;
-
-    const url = `https://wa.me/549${telefonoCliente}?text=${encodeURIComponent(mensaje)}`;
-    window.open(url, '_blank');
-}
 
 function verNotas() {
     window.location.href = '/pages/notas.html';
