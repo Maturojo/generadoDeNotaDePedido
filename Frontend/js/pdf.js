@@ -9,49 +9,35 @@ async function generarPDF() {
     // Cliente por defecto
     datos.seniores = datos.seniores?.trim() || "Sin cliente";
 
-    // Generamos el código único UNA sola vez
+    // Generamos el código único
     const codigoNota = generarCodigoUnico();
 
     // Dibujamos el PDF
     dibujarPDF(doc, datos, codigoNota);
+
+    // Guardar PDF en disco
+    doc.save(`nota_pedido_${codigoNota}.pdf`);
+
+    // Guardar en backend
     const pdfBlob = doc.output('blob');
-
-    // Guardamos en backend
-    const codigoGuardado = await guardarNotaEnBackend(datos, pdfBlob, codigoNota);
-    if (!codigoGuardado) return;
-
-    // Guardar en disco con el mismo código
-    doc.save(`nota_pedido_${codigoGuardado}.pdf`);
+    const codigoReal = await guardarNotaEnBackend(datos, pdfBlob);
+    if (!codigoReal) return;
 
     Swal.fire({
         icon: "success",
         title: "¡Nota Guardada!",
-        text: `Se generó y guardó la nota con el código ${codigoGuardado}.`,
+        text: `La nota fue guardada con el código ${codigoReal}.`,
         confirmButtonText: "OK"
     });
 }
 
-// ------------------- VER PDF (solo visualiza, no guarda) -------------------
-function verPDF() {
-    if (!validarCampos()) return;
-
-    const { jsPDF } = window.jspdf;
-    const doc = new jsPDF();
-    const datos = obtenerDatosFormulario();
-    datos.seniores = datos.seniores?.trim() || "Sin cliente";
-
-    // Generamos un código temporal SOLO para visualizar
-    const tempCodigo = generarCodigoUnico();
-    dibujarPDF(doc, datos, tempCodigo);
-
-    const pdfBlob = doc.output('blob');
-    const pdfUrl = URL.createObjectURL(pdfBlob);
-    window.open(pdfUrl, '_blank');
-}
-
 // ------------------- DIBUJAR PDF -------------------
 function dibujarPDF(doc, datos, codigoNota) {
-    const { fecha, fechaEntrega, seniores, telefono, vendedor, transferidoA, tipoPago, total, descuento, adelanto, resta, productos } = datos;
+    const {
+        fecha, fechaEntrega, seniores, telefono,
+        vendedor, transferidoA, tipoPago,
+        total, descuento, adelanto, resta, productos
+    } = datos;
 
     doc.setFontSize(16);
     doc.setTextColor(97, 95, 95);
@@ -70,7 +56,7 @@ function dibujarPDF(doc, datos, codigoNota) {
     doc.text(`Medio de pago: ${transferidoA}`, 20, 82);
     doc.text(`Tipo de pago: ${tipoPago}`, 20, 90);
 
-    // TABLA DE PRODUCTOS
+    // Tabla productos
     let yTabla = 110;
     doc.rect(20, yTabla, 170, 10);
     doc.line(40, yTabla, 40, yTabla + 10);
@@ -80,7 +66,7 @@ function dibujarPDF(doc, datos, codigoNota) {
     doc.text("IMPORTE", 185, yTabla + 7, { align: 'right' });
     yTabla += 10;
 
-    productos.forEach(prod => {
+    (productos || []).forEach(prod => {
         const textoProducto = prod.detalle;
         const detalleTexto = doc.splitTextToSize(textoProducto, 105);
         const alturaFila = Math.max(detalleTexto.length * 5, 10);
@@ -96,7 +82,6 @@ function dibujarPDF(doc, datos, codigoNota) {
         yTabla += alturaFila;
     });
 
-    // TOTALES
     let yTotales = yTabla + 5;
     if (descuento > 0) {
         doc.text(`Descuento: $${descuento.toFixed(2)}`, 150, yTotales);

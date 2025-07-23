@@ -5,6 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Notas de Pedido</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="/js/pdf.js"></script>
 </head>
 <body class="p-4">
     <div class="container">
@@ -27,16 +30,17 @@
     </div>
 
     <script>
-        const API_URL = 'https://generadodenotadepedido.onrender.com'; // Ajusta tu backend URL
+        const API_URL = 'https://generadodenotadepedido.onrender.com';
 
         async function cargarNotas() {
             const tbody = document.getElementById('notas-list');
             tbody.innerHTML = '<tr><td colspan="6" class="text-center">Cargando...</td></tr>';
+
             try {
                 const response = await fetch(`${API_URL}/notas`);
-                if (!response.ok) throw new Error('Error al obtener las notas del servidor.');
-
+                if (!response.ok) throw new Error('Error al obtener las notas.');
                 const notas = await response.json();
+
                 if (!Array.isArray(notas) || !notas.length) {
                     tbody.innerHTML = '<tr><td colspan="6" class="text-center">No hay notas disponibles</td></tr>';
                     return;
@@ -51,18 +55,15 @@
                     const vendedor = nota.vendedor || 'N/A';
                     const total = nota.total ? `$${parseFloat(nota.total).toFixed(2)}` : '$0.00';
 
-                    // Mostrar cliente desde 'cliente' o 'seniores'
-                    const cliente = nota.cliente || nota.seniores || 'Sin cliente';
-
                     const row = document.createElement('tr');
                     row.innerHTML = `
-                        <td>${cliente}</td>
+                        <td>${nota.cliente || 'Sin cliente'}</td>
                         <td>${telefono}</td>
                         <td>${vendedor}</td>
                         <td>${fecha}</td>
                         <td>${total}</td>
                         <td>
-                            <button class="btn btn-sm btn-primary" onclick="verPDF('${nota._id}')">Ver PDF</button>
+                            <button class="btn btn-sm btn-primary" onclick="verPDFNota('${nota._id}')">Ver PDF</button>
                         </td>
                     `;
                     tbody.appendChild(row);
@@ -73,12 +74,34 @@
             }
         }
 
-        function verPDF(id) {
-            if (!id) {
-                alert('No se puede abrir el PDF. ID no válido.');
-                return;
+        async function verPDFNota(id) {
+            try {
+                const response = await fetch(`${API_URL}/notas/${id}`);
+                if (!response.ok) throw new Error('Error al obtener los datos de la nota.');
+                const nota = await response.json();
+
+                // Parsear productos si vienen como string
+                if (typeof nota.productos === 'string') {
+                    nota.productos = JSON.parse(nota.productos);
+                }
+
+                // Regenerar PDF
+                const { jsPDF } = window.jspdf;
+                const doc = new jsPDF();
+                dibujarPDF(doc, nota, nota.codigo || 'SIN-CODIGO');
+
+                const pdfBlob = doc.output('blob');
+                const pdfUrl = URL.createObjectURL(pdfBlob);
+                window.open(pdfUrl, '_blank');
+            } catch (error) {
+                console.error('Error generando PDF:', error);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: 'No se pudo generar el PDF de la nota.',
+                    confirmButtonText: 'OK'
+                });
             }
-            window.open(`${API_URL}/notas/${id}/pdf`, '_blank');
         }
 
         cargarNotas();
