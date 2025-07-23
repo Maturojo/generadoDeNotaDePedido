@@ -329,6 +329,7 @@ function validarCampos() {
 }
 
 // ------------------- GENERAR PDF -------------------
+// ------------------- GENERAR PDF -------------------
 async function generarPDF() {
     if (!validarCampos()) return;
 
@@ -446,8 +447,12 @@ async function generarPDF() {
     // 2. Convertir a Blob y enviar al backend
     // =======================
     try {
-        const pdfArrayBuffer = doc.output('arraybuffer');
-        const pdfBlob = new Blob([pdfArrayBuffer], { type: 'application/pdf' });
+        const pdfBlob = doc.output('blob');
+        console.log("Tamaño del PDF:", pdfBlob.size, "bytes");
+
+        if (pdfBlob.size === 0) {
+            throw new Error("El PDF está vacío. Revisa la generación.");
+        }
 
         const formData = new FormData();
         formData.append("cliente", seniores);
@@ -487,7 +492,6 @@ async function generarPDF() {
         });
     }
 }
-
 
 
 
