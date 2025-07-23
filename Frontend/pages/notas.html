@@ -70,15 +70,10 @@
             }
         }
 
-        function verPDF(id) {
-            if (!id) {
-                alert('No se puede abrir el PDF. ID no válido.');
-                return;
-            }
-            window.open(`${API_URL}/notas/${id}/pdf`, '_blank');
-        }
-
-        cargarNotas();
+    
     </script>
+
+    <script src="/js/config.js"></script>
+    <script src="/js/main.js"></script>
 </body>
 </html>
