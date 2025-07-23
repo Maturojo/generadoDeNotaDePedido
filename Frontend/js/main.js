@@ -443,7 +443,7 @@ function obtenerDatosFormulario() {
     return {
         fecha: document.getElementById('fecha').value,
         fechaEntrega: document.getElementById('fechaEntrega').value,
-        seniores: document.getElementById('seniores').value || "Sin cliente", // <--- por defecto
+        seniores: document.getElementById('seniores').value,
         telefono: document.getElementById('telefono').value,
         vendedor: document.getElementById('vendedor').value,
         transferidoA: document.getElementById('transferidoA').value,
