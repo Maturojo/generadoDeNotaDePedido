@@ -1,23 +1,31 @@
 // ------------------- GUARDAR NOTA SIN PDF -------------------
+// ------------------- GUARDAR NOTA SIN PDF -------------------
 async function guardarNota() {
     if (!validarCampos()) return;
 
     const codigoNota = generarCodigoUnico();
     const datos = obtenerDatosFormulario();
 
-    // Agregar el campo 'cliente' tomando el valor de 'seniores'
-    const notaData = {
-        ...datos,
-        cliente: datos.seniores || "Sin cliente",
-        codigo: codigoNota
-    };
+    // Normalizamos el campo cliente (antes seniores)
+    const cliente = datos.seniores?.trim() || "Sin cliente";
 
     try {
-        const response = await fetch(`${API_URL}/notas`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(notaData)
-        });
+        const formData = new FormData();
+        formData.append("codigo", codigoNota);
+        formData.append("cliente", cliente);
+        formData.append("telefono", datos.telefono);
+        formData.append("vendedor", datos.vendedor);
+        formData.append("fecha", datos.fecha);
+        formData.append("fechaEntrega", datos.fechaEntrega);
+        formData.append("transferidoA", datos.transferidoA);
+        formData.append("tipoPago", datos.tipoPago);
+        formData.append("total", datos.total);
+        formData.append("descuento", datos.descuento);
+        formData.append("adelanto", datos.adelanto);
+        formData.append("resta", datos.resta);
+        formData.append("productos", JSON.stringify(datos.productos));
+
+        const response = await fetch(`${API_URL}/notas`, { method: "POST", body: formData });
 
         if (!response.ok) {
             const errorText = await response.text();
@@ -31,6 +39,9 @@ async function guardarNota() {
         Swal.fire({ icon: "error", title: "Error", text: "No se pudo guardar la nota.", confirmButtonText: "OK" });
     }
 }
+
+
+
 
 // ------------------- OBTENER DATOS DEL FORMULARIO -------------------
 function obtenerDatosFormulario() {
