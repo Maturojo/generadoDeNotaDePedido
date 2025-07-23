@@ -20,6 +20,20 @@
 <body class="bg-light">
     <div class="container py-4">
         <h1 class="text-center mb-4">Notas Guardadas</h1>
+        
+        <!-- FILTROS -->
+        <div class="row mb-4">
+            <div class="col-md-4 mb-2">
+                <input type="text" id="filtroCliente" class="form-control" placeholder="Filtrar por cliente">
+            </div>
+            <div class="col-md-4 mb-2">
+                <input type="text" id="filtroVendedor" class="form-control" placeholder="Filtrar por vendedor">
+            </div>
+            <div class="col-md-4 mb-2">
+                <input type="date" id="filtroFecha" class="form-control">
+            </div>
+        </div>
+
         <div id="contenedorNotas" class="row g-3">
             <!-- Aquí se cargarán las cards dinámicamente -->
         </div>
@@ -28,7 +42,9 @@
     <script src="../js/config.js"></script>
     <script src="../js/pdf.js"></script>
     <script>
-        // Función para agrupar notas por fecha
+        let notasGlobal = []; // Mantener todas las notas cargadas
+
+        // Agrupa notas por fecha
         function agruparPorFecha(notas) {
             return notas.reduce((grupo, nota) => {
                 const fecha = nota.fecha || 'Sin fecha';
@@ -38,53 +54,101 @@
             }, {});
         }
 
-        // Cargar notas
+        // Renderiza las notas (con filtros aplicados)
+        function renderizarNotas(notas) {
+            const contenedor = document.getElementById('contenedorNotas');
+            contenedor.innerHTML = '';
+
+            const notasPorFecha = agruparPorFecha(notas);
+            for (const fecha in notasPorFecha) {
+                const notasDia = notasPorFecha[fecha];
+
+                const card = document.createElement('div');
+                card.classList.add('col-12', 'col-md-6', 'col-lg-4');
+                card.innerHTML = `
+                    <div class="card shadow-sm">
+                        <div class="card-header bg-primary text-white">
+                            Notas del ${fecha}
+                        </div>
+                        <ul class="list-group list-group-flush">
+                            ${notasDia.map(nota => `
+                                <li class="list-group-item d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <strong>${nota.cliente || "Sin cliente"}</strong><br>
+                                        <small>Vendedor: ${nota.vendedor || "-"}</small>
+                                    </div>
+                                    <div class="text-end">
+                                        <span class="badge bg-secondary mb-1">$${nota.total.toFixed(2)}</span><br>
+                                        <button class="btn btn-sm btn-outline-primary mb-1" onclick="verPDFNota('${nota.codigo}')">Ver PDF</button>
+                                        <button class="btn btn-sm btn-outline-danger" onclick="eliminarNota('${nota.codigo}')">Eliminar</button>
+                                    </div>
+                                </li>
+                            `).join('')}
+                        </ul>
+                    </div>
+                `;
+                contenedor.appendChild(card);
+            }
+        }
+
+        // Cargar notas desde el backend
         async function cargarNotas() {
             try {
                 const response = await fetch(`${API_URL}/notas`);
-                const notas = await response.json();
-
-                const contenedor = document.getElementById('contenedorNotas');
-                contenedor.innerHTML = '';
-
-                const notasPorFecha = agruparPorFecha(notas);
-
-                for (const fecha in notasPorFecha) {
-                    const notasDia = notasPorFecha[fecha];
-
-                    const card = document.createElement('div');
-                    card.classList.add('col-12', 'col-md-6', 'col-lg-4');
-                    card.innerHTML = `
-                        <div class="card shadow-sm">
-                            <div class="card-header bg-primary text-white">
-                                Notas del ${fecha}
-                            </div>
-                            <ul class="list-group list-group-flush">
-                                ${notasDia.map(nota => `
-                                    <li class="list-group-item d-flex justify-content-between align-items-center">
-                                        <div>
-                                            <strong>${nota.cliente || "Sin cliente"}</strong><br>
-                                            <small>Vendedor: ${nota.vendedor || "-"}</small>
-                                        </div>
-                                        <div class="text-end">
-                                            <span class="badge bg-secondary mb-1">$${nota.total.toFixed(2)}</span><br>
-                                            <button class="btn btn-sm btn-outline-primary" onclick="verPDFNota('${nota.codigo}')">Ver PDF</button>
-                                        </div>
-                                    </li>
-                                `).join('')}
-                            </ul>
-                        </div>
-                    `;
-
-                    contenedor.appendChild(card);
-                }
+                notasGlobal = await response.json();
+                aplicarFiltros();
             } catch (error) {
                 console.error("Error cargando notas:", error);
                 Swal.fire("Error", "No se pudieron cargar las notas", "error");
             }
         }
 
-        // Generar PDF al hacer clic en "Ver PDF"
+        // Filtrar notas
+        function aplicarFiltros() {
+            const cliente = document.getElementById('filtroCliente').value.toLowerCase();
+            const vendedor = document.getElementById('filtroVendedor').value.toLowerCase();
+            const fecha = document.getElementById('filtroFecha').value;
+
+            let notasFiltradas = notasGlobal.filter(nota => {
+                return (
+                    (!cliente || (nota.cliente || '').toLowerCase().includes(cliente)) &&
+                    (!vendedor || (nota.vendedor || '').toLowerCase().includes(vendedor)) &&
+                    (!fecha || nota.fecha === fecha)
+                );
+            });
+
+            renderizarNotas(notasFiltradas);
+        }
+
+        // Eliminar nota
+        async function eliminarNota(codigo) {
+            const confirm = await Swal.fire({
+                icon: "warning",
+                title: "¿Eliminar nota?",
+                text: "Esta acción no se puede deshacer.",
+                showCancelButton: true,
+                confirmButtonText: "Sí, eliminar",
+                cancelButtonText: "Cancelar"
+            });
+
+            if (!confirm.isConfirmed) return;
+
+            try {
+                const response = await fetch(`${API_URL}/notas/${codigo}`, {
+                    method: "DELETE"
+                });
+
+                if (!response.ok) throw new Error("Error al eliminar la nota.");
+
+                Swal.fire("Eliminada", "La nota ha sido eliminada.", "success");
+                cargarNotas(); // Recargar lista
+            } catch (error) {
+                console.error("Error eliminando nota:", error);
+                Swal.fire("Error", "No se pudo eliminar la nota.", "error");
+            }
+        }
+
+        // Ver PDF
         async function verPDFNota(codigoNota) {
             try {
                 const response = await fetch(`${API_URL}/notas/${codigoNota}`);
@@ -110,6 +174,11 @@
                 });
             }
         }
+
+        // Listeners de filtros
+        document.getElementById('filtroCliente').addEventListener('input', aplicarFiltros);
+        document.getElementById('filtroVendedor').addEventListener('input', aplicarFiltros);
+        document.getElementById('filtroFecha').addEventListener('input', aplicarFiltros);
 
         cargarNotas();
     </script>
