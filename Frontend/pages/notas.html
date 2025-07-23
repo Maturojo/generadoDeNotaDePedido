@@ -7,60 +7,77 @@
     
     <!-- Bootstrap -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+
+    <!-- SweetAlert -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+    <!-- jsPDF -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     
     <!-- Estilos personalizados -->
     <link rel="stylesheet" href="../css/styles.css">
-    
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 </head>
 <body class="bg-light">
-    <div class="container mt-4">
+    <div class="container py-4">
         <h1 class="text-center mb-4">Notas Guardadas</h1>
-        <div class="table-responsive">
-            <table class="table table-striped table-bordered table-hover align-middle">
-                <thead class="table-dark">
-                    <tr>
-                        <th>Cliente</th>
-                        <th>Teléfono</th>
-                        <th>Vendedor</th>
-                        <th>Fecha</th>
-                        <th>Total</th>
-                        <th>Acciones</th>
-                    </tr>
-                </thead>
-                <tbody id="tablaNotas">
-                    <!-- Notas dinámicas -->
-                </tbody>
-            </table>
+        <div id="contenedorNotas" class="row g-3">
+            <!-- Aquí se cargarán las cards dinámicamente -->
         </div>
     </div>
 
     <script src="../js/config.js"></script>
     <script src="../js/pdf.js"></script>
     <script>
-        // Cargar lista de notas
+        // Función para agrupar notas por fecha
+        function agruparPorFecha(notas) {
+            return notas.reduce((grupo, nota) => {
+                const fecha = nota.fecha || 'Sin fecha';
+                if (!grupo[fecha]) grupo[fecha] = [];
+                grupo[fecha].push(nota);
+                return grupo;
+            }, {});
+        }
+
+        // Cargar notas
         async function cargarNotas() {
             try {
                 const response = await fetch(`${API_URL}/notas`);
                 const notas = await response.json();
 
-                const tabla = document.getElementById('tablaNotas');
-                tabla.innerHTML = '';
-                notas.forEach(nota => {
-                    tabla.innerHTML += `
-                        <tr>
-                            <td>${nota.cliente || "Sin cliente"}</td>
-                            <td>${nota.telefono || "-"}</td>
-                            <td>${nota.vendedor || "-"}</td>
-                            <td>${nota.fecha || "-"}</td>
-                            <td>$${nota.total.toFixed(2)}</td>
-                            <td>
-                                <button class="btn btn-primary btn-sm" onclick="verPDFNota('${nota.codigo}')">Ver PDF</button>
-                            </td>
-                        </tr>
+                const contenedor = document.getElementById('contenedorNotas');
+                contenedor.innerHTML = '';
+
+                const notasPorFecha = agruparPorFecha(notas);
+
+                for (const fecha in notasPorFecha) {
+                    const notasDia = notasPorFecha[fecha];
+
+                    const card = document.createElement('div');
+                    card.classList.add('col-12', 'col-md-6', 'col-lg-4');
+                    card.innerHTML = `
+                        <div class="card shadow-sm">
+                            <div class="card-header bg-primary text-white">
+                                Notas del ${fecha}
+                            </div>
+                            <ul class="list-group list-group-flush">
+                                ${notasDia.map(nota => `
+                                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <strong>${nota.cliente || "Sin cliente"}</strong><br>
+                                            <small>Vendedor: ${nota.vendedor || "-"}</small>
+                                        </div>
+                                        <div class="text-end">
+                                            <span class="badge bg-secondary mb-1">$${nota.total.toFixed(2)}</span><br>
+                                            <button class="btn btn-sm btn-outline-primary" onclick="verPDFNota('${nota.codigo}')">Ver PDF</button>
+                                        </div>
+                                    </li>
+                                `).join('')}
+                            </ul>
+                        </div>
                     `;
-                });
+
+                    contenedor.appendChild(card);
+                }
             } catch (error) {
                 console.error("Error cargando notas:", error);
                 Swal.fire("Error", "No se pudieron cargar las notas", "error");
@@ -74,15 +91,11 @@
                 if (!response.ok) throw new Error("No se pudo obtener la nota del servidor.");
                 
                 const nota = await response.json();
-
-                // Usar jsPDF
                 const { jsPDF } = window.jspdf;
                 const doc = new jsPDF();
 
-                // Dibujar PDF usando pdf.js
                 dibujarPDF(doc, nota, nota.codigo);
 
-                // Mostrar en nueva pestaña
                 const pdfBlob = doc.output('blob');
                 const pdfUrl = URL.createObjectURL(pdfBlob);
                 window.open(pdfUrl, '_blank');
