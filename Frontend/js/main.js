@@ -522,7 +522,7 @@ function dibujarPDF(doc, datos, codigoNota) {
         doc.setFontSize(30);
         doc.setTextColor(0, 0, 0);
         doc.setFont("helvetica", "bold");
-        doc.text("PAGADO", 105, 100, { align: "center" });
+        doc.text("PAGADO", 130, 25, { align: "center" });
     }
 }
 
