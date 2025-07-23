@@ -1,12 +1,5 @@
-// ------------------- GUARDAR NOTA SIN PDF -------------------
-// ------------------- GUARDAR NOTA SIN PDF -------------------
-async function guardarNota() {
-    if (!validarCampos()) return;
-
-    const codigoNota = generarCodigoUnico();
-    const datos = obtenerDatosFormulario();
-
-    // Normalizamos el campo cliente (antes seniores)
+// ------------------- GUARDAR NOTA (CON O SIN PDF) -------------------
+async function guardarNotaEnBackend(datos, pdfBlob = null, codigoNota = generarCodigoUnico()) {
     const cliente = datos.seniores?.trim() || "Sin cliente";
 
     try {
@@ -25,7 +18,15 @@ async function guardarNota() {
         formData.append("resta", datos.resta);
         formData.append("productos", JSON.stringify(datos.productos));
 
-        const response = await fetch(`${API_URL}/notas`, { method: "POST", body: formData });
+        // Adjuntar PDF solo si existe
+        if (pdfBlob) {
+            formData.append("pdf", pdfBlob, `nota_pedido_${codigoNota}.pdf`);
+        }
+
+        const response = await fetch(`${API_URL}/notas`, {
+            method: "POST",
+            body: formData
+        });
 
         if (!response.ok) {
             const errorText = await response.text();
@@ -33,48 +34,67 @@ async function guardarNota() {
             throw new Error("Error al guardar la nota");
         }
 
-        Swal.fire({ icon: "success", title: "¡Guardada!", text: "La nota fue guardada.", confirmButtonText: "OK" });
+        return codigoNota;
     } catch (err) {
         console.error("Error enviando nota al backend:", err);
-        Swal.fire({ icon: "error", title: "Error", text: "No se pudo guardar la nota.", confirmButtonText: "OK" });
+        Swal.fire({
+            icon: "error",
+            title: "Error",
+            text: "No se pudo guardar la nota en el servidor.",
+            confirmButtonText: "OK"
+        });
+        return null;
     }
 }
 
+// ------------------- GENERAR Y GUARDAR PDF -------------------
+async function generarPDF() {
+    if (!validarCampos()) return;
 
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+    const datos = obtenerDatosFormulario();
 
+    // Cliente por defecto
+    datos.seniores = datos.seniores?.trim() || "Sin cliente";
 
-// ------------------- OBTENER DATOS DEL FORMULARIO -------------------
-function obtenerDatosFormulario() {
-    const productos = [];
-    const filas = document.querySelectorAll('#detalles .row');
+    // Generamos el código una sola vez
+    const codigoNota = generarCodigoUnico();
 
-    filas.forEach(fila => {
-        const productoSelect = fila.querySelector('.producto-select');
-        const inputCustom = fila.querySelector('.input-personalizado')?.value.trim();
-        const detalleCustom = fila.querySelector('.detalle-personalizado')?.value.trim();
+    // Dibujamos el PDF y generamos el blob
+    dibujarPDF(doc, datos, codigoNota);
+    const pdfBlob = doc.output('blob');
 
-        let baseProducto = (productoSelect.value === 'custom' || inputCustom) 
-            ? (inputCustom || "Producto sin nombre") 
-            : productoSelect.options[productoSelect.selectedIndex]?.text || "Sin producto";
-        let textoProducto = detalleCustom ? `${baseProducto} - ${detalleCustom}` : baseProducto;
+    // Guardamos la nota en el backend con el mismo código
+    const codigoGuardado = await guardarNotaEnBackend(datos, pdfBlob, codigoNota);
+    if (!codigoGuardado) return;
 
-        const cantidad = parseFloat(fila.querySelector('.cantidad').value) || 0;
-        const precio = parseFloat(fila.querySelector('.precio').value) || 0;
-        productos.push({ detalle: textoProducto, cantidad, precioUnitario: precio, subtotal: cantidad * precio });
+    // Guardar PDF en disco con el mismo código
+    doc.save(`nota_pedido_${codigoGuardado}.pdf`);
+
+    Swal.fire({
+        icon: "success",
+        title: "¡Nota Guardada!",
+        text: `Se guardó la nota con el código ${codigoGuardado}.`,
+        confirmButtonText: "OK"
     });
+}
 
-    return {
-        fecha: document.getElementById('fecha').value,
-        fechaEntrega: document.getElementById('fechaEntrega').value,
-        seniores: document.getElementById('seniores').value,
-        telefono: document.getElementById('telefono').value,
-        vendedor: document.getElementById('vendedor').value,
-        transferidoA: document.getElementById('transferidoA').value,
-        tipoPago: document.getElementById('tipoPago').value,
-        total: parseFloat(document.getElementById('total').value) || 0,
-        descuento: parseFloat(document.getElementById('descuento').value) || 0,
-        adelanto: parseFloat(document.getElementById('adelanto').value) || 0,
-        resta: parseFloat(document.getElementById('resta').value) || 0,
-        productos
-    };
+// ------------------- SOLO GUARDAR NOTA SIN PDF -------------------
+async function guardarNota() {
+    if (!validarCampos()) return;
+
+    const datos = obtenerDatosFormulario();
+    datos.seniores = datos.seniores?.trim() || "Sin cliente";
+
+    // Generamos el código una sola vez y guardamos
+    const codigo = await guardarNotaEnBackend(datos, null, generarCodigoUnico());
+    if (codigo) {
+        Swal.fire({
+            icon: "success",
+            title: "¡Guardada!",
+            text: `La nota fue guardada con el código ${codigo}.`,
+            confirmButtonText: "OK"
+        });
+    }
 }

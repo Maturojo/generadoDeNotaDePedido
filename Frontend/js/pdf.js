@@ -1,61 +1,52 @@
-// ------------------- VER PDF -------------------
-function verPDF() {
-    if (!validarCampos()) return;
-
-    const { jsPDF } = window.jspdf;
-    const doc = new jsPDF();
-    const codigoNota = generarCodigoUnico();
-    const datos = obtenerDatosFormulario();
-
-    dibujarPDF(doc, datos, codigoNota);
-
-    const pdfBlob = doc.output('blob');
-    const pdfUrl = URL.createObjectURL(pdfBlob);
-    window.open(pdfUrl, '_blank');
-}
-
 // ------------------- GENERAR PDF -------------------
 async function generarPDF() {
     if (!validarCampos()) return;
 
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF();
-    const codigoNota = generarCodigoUnico();
     const datos = obtenerDatosFormulario();
 
-    // Aseguramos cliente por defecto si está vacío
-    if (!datos.seniores || datos.seniores.trim() === "") {
-        datos.seniores = "Sin cliente";
-    }
+    // Cliente por defecto
+    datos.seniores = datos.seniores?.trim() || "Sin cliente";
+
+    // Generamos el código único UNA sola vez
+    const codigoNota = generarCodigoUnico();
 
     // Dibujamos el PDF
     dibujarPDF(doc, datos, codigoNota);
+    const pdfBlob = doc.output('blob');
 
-    // Guardar en disco
-    doc.save(`nota_pedido_${codigoNota}.pdf`);
+    // Guardamos en backend
+    const codigoGuardado = await guardarNotaEnBackend(datos, pdfBlob, codigoNota);
+    if (!codigoGuardado) return;
 
-    // Guardar en backend
-    try {
-        const pdfBlob = doc.output('blob');
-        console.log("Cliente:", datos.seniores);
-        console.log("Código de Nota:", codigoNota);
+    // Guardar en disco con el mismo código
+    doc.save(`nota_pedido_${codigoGuardado}.pdf`);
 
-        const formData = prepararFormData(datos, pdfBlob, codigoNota);
-        formData.append("codigoNota", codigoNota); // <-- NUEVO
+    Swal.fire({
+        icon: "success",
+        title: "¡Nota Guardada!",
+        text: `Se generó y guardó la nota con el código ${codigoGuardado}.`,
+        confirmButtonText: "OK"
+    });
+}
 
-        const response = await fetch(`${API_URL}/notas`, { method: "POST", body: formData });
+// ------------------- VER PDF (solo visualiza, no guarda) -------------------
+function verPDF() {
+    if (!validarCampos()) return;
 
-        if (!response.ok) {
-            const errorText = await response.text();
-            console.error("Respuesta del backend:", errorText);
-            throw new Error("Error al guardar la nota");
-        }
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+    const datos = obtenerDatosFormulario();
+    datos.seniores = datos.seniores?.trim() || "Sin cliente";
 
-        Swal.fire({ icon: "success", title: "¡Guardada!", text: "La nota fue guardada.", confirmButtonText: "OK" });
-    } catch (err) {
-        console.error("Error enviando nota al backend:", err);
-        Swal.fire({ icon: "error", title: "Error", text: "No se pudo guardar la nota.", confirmButtonText: "OK" });
-    }
+    // Generamos un código temporal SOLO para visualizar
+    const tempCodigo = generarCodigoUnico();
+    dibujarPDF(doc, datos, tempCodigo);
+
+    const pdfBlob = doc.output('blob');
+    const pdfUrl = URL.createObjectURL(pdfBlob);
+    window.open(pdfUrl, '_blank');
 }
 
 // ------------------- DIBUJAR PDF -------------------
@@ -79,6 +70,7 @@ function dibujarPDF(doc, datos, codigoNota) {
     doc.text(`Medio de pago: ${transferidoA}`, 20, 82);
     doc.text(`Tipo de pago: ${tipoPago}`, 20, 90);
 
+    // TABLA DE PRODUCTOS
     let yTabla = 110;
     doc.rect(20, yTabla, 170, 10);
     doc.line(40, yTabla, 40, yTabla + 10);
@@ -104,6 +96,7 @@ function dibujarPDF(doc, datos, codigoNota) {
         yTabla += alturaFila;
     });
 
+    // TOTALES
     let yTotales = yTabla + 5;
     if (descuento > 0) {
         doc.text(`Descuento: $${descuento.toFixed(2)}`, 150, yTotales);
@@ -127,65 +120,4 @@ function dibujarPDF(doc, datos, codigoNota) {
         doc.setFont("helvetica", "bold");
         doc.text("PAGADO", 160, 30, { align: "center" });
     }
-}
-
-// ------------------- GENERAR PDF (Proveedor) -------------------
-function generarNotaProveedor() {
-    const { jsPDF } = window.jspdf;
-    const doc = new jsPDF();
-
-    const fecha = document.getElementById('fecha').value;
-    const vendedor = document.getElementById('vendedor').value;
-    const fechaEntrega = document.getElementById('fechaEntrega').value;
-    const codigoNota = generarCodigoUnico();
-
-    doc.setFontSize(16);
-    doc.setTextColor(97, 95, 95);
-    doc.text("NOTA DE PEDIDO - PROVEEDOR", 40, 25);
-    doc.setFontSize(12);
-    doc.text("SUR MADERAS", 40, 32);
-    doc.setFontSize(11);
-    doc.text(`Código: ${codigoNota}`, 40, 39);
-
-    doc.setFontSize(10);
-    doc.text(`Fecha: ${fecha}`, 20, 50);
-    doc.text(`Vendedor: ${vendedor}`, 120, 50);
-    doc.text(`Entrega: ${fechaEntrega}`, 20, 58);
-
-    let yTabla = 70;
-    doc.rect(20, yTabla, 170, 10);
-    doc.line(40, yTabla, 40, yTabla + 10);
-    doc.text("CANT.", 22, yTabla + 7);
-    doc.text("DETALLE", 100, yTabla + 7, { align: 'center' });
-    yTabla += 10;
-
-    const filas = document.querySelectorAll('#detalles .row');
-    filas.forEach(fila => {
-        const cantidad = fila.querySelector('.cantidad').value || 0;
-        const productoSelect = fila.querySelector('.producto-select');
-        const inputCustom = fila.querySelector('.input-personalizado')?.value.trim();
-        const detalleCustom = fila.querySelector('.detalle-personalizado')?.value.trim();
-
-        let textoProducto = '';
-        if (productoSelect.value === 'custom' || (inputCustom && inputCustom.length > 0)) {
-            const base = inputCustom || "Producto sin nombre";
-            textoProducto = detalleCustom ? `${base} - ${detalleCustom}` : base;
-        } else {
-            textoProducto = productoSelect.options[productoSelect.selectedIndex]?.text || "Sin producto";
-        }
-
-        let detalleTexto = doc.splitTextToSize(textoProducto, 145);
-        let alturaFila = Math.max(detalleTexto.length * 5, 10);
-
-        doc.rect(20, yTabla, 170, alturaFila);
-        doc.line(40, yTabla, 40, yTabla + alturaFila);
-
-        doc.text(String(cantidad), 30, yTabla + 6);
-        doc.text(detalleTexto, 45, yTabla + 6);
-
-        yTabla += alturaFila;
-    });
-
-    if (logo) doc.addImage(logo, 'PNG', 15, 15, 25, 25);
-    doc.save(`nota_proveedor_${codigoNota}.pdf`);
 }
