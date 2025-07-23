@@ -1,5 +1,3 @@
-
-
 // ------------------- VARIABLES GLOBALES -------------------
 let productos = [];
 let logo = null;
@@ -24,7 +22,6 @@ window.onload = function () {
     document.getElementById('tipoPago').addEventListener('change', toggleResta);
     document.getElementById('descuento').addEventListener('click', solicitarClaveDescuento);
     document.getElementById("generarProveedor").addEventListener("click", generarNotaProveedor);
-
 
     const telefonoInput = document.getElementById('telefono');
     telefonoInput.addEventListener('input', function (e) {
@@ -255,50 +252,6 @@ function solicitarClaveDescuento() {
     });
 }
 
-// ------------------- FECHAS DE ENTREGA -------------------
-function sumarDiasHabiles(fecha, diasHabiles) {
-    let contador = 0;
-    let fechaTemp = new Date(fecha);
-    while (contador < diasHabiles) {
-        fechaTemp.setDate(fechaTemp.getDate() + 1);
-        let dia = fechaTemp.getDay();
-        if (dia !== 0 && dia !== 6) contador++;
-    }
-    return fechaTemp;
-}
-
-function formatearFecha(fecha) {
-    let dia = fecha.getDate().toString().padStart(2, '0');
-    let mes = (fecha.getMonth() + 1).toString().padStart(2, '0');
-    let anio = fecha.getFullYear();
-    return `${dia}/${mes}/${anio}`;
-}
-
-function actualizarOpcionesEntrega() {
-    const hoy = new Date();
-    const fecha15 = formatearFecha(sumarDiasHabiles(hoy, 15));
-    const fecha20 = formatearFecha(sumarDiasHabiles(hoy, 20));
-
-    document.querySelector('#opcionEntrega option[value="15"]').textContent = `15 días hábiles (${fecha15})`;
-    document.querySelector('#opcionEntrega option[value="20"]').textContent = `20 días hábiles (${fecha20})`;
-}
-
-function cambiarEntrega() {
-    const opcion = document.getElementById('opcionEntrega').value;
-    const inputFecha = document.getElementById('fechaEntrega');
-    const hoy = new Date();
-
-    if (opcion === "especial") {
-        inputFecha.style.display = "block";
-        inputFecha.value = "";
-    } else {
-        inputFecha.style.display = "block";
-        const dias = parseInt(opcion);
-        const fechaEntrega = sumarDiasHabiles(hoy, dias);
-        inputFecha.value = fechaEntrega.toISOString().split('T')[0];
-    }
-}
-
 // ------------------- VALIDACIÓN -------------------
 function validarCampos() {
     const camposObligatorios = ['fecha', 'fechaEntrega', 'seniores', 'telefono', 'vendedor', 'transferidoA', 'tipoPago'];
@@ -328,37 +281,22 @@ function validarCampos() {
     return true;
 }
 
-// ------------------- GENERAR PDF -------------------
-// ------------------- GENERAR PDF -------------------
-// ------------------- GENERAR PDF -------------------
-async function generarPDF() {
+// ------------------- GUARDAR NOTA SIN PDF -------------------
+async function guardarNota() {
     if (!validarCampos()) return;
 
-    const { jsPDF } = window.jspdf;
-    const doc = new jsPDF();
     const codigoNota = generarCodigoUnico();
     const datos = obtenerDatosFormulario();
 
-    // Dibuja el contenido del PDF
-    dibujarPDF(doc, datos, codigoNota);
-
-    // =======================
-    // 1. Guardar en el disco
-    // =======================
-    doc.save(`nota_pedido_${codigoNota}.pdf`);
-
-    // =======================
-    // 2. Convertir a Blob y enviar al backend
-    // =======================
     try {
-        const pdfBlob = doc.output('blob');
-        console.log("Tamaño del PDF:", pdfBlob.size, "bytes");
-
-        if (pdfBlob.size === 0) throw new Error("El PDF está vacío.");
-
-        const formData = prepararFormData(datos, pdfBlob, codigoNota);
-
-        const response = await fetch(`${API_URL}/notas`, { method: "POST", body: formData });
+        const response = await fetch(`${API_URL}/notas`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                ...datos,
+                codigo: codigoNota
+            })
+        });
 
         if (!response.ok) {
             const errorText = await response.text();
@@ -382,16 +320,14 @@ function verPDF() {
     const codigoNota = generarCodigoUnico();
     const datos = obtenerDatosFormulario();
 
-    // Dibuja el mismo PDF
     dibujarPDF(doc, datos, codigoNota);
 
-    // Abrir en nueva pestaña
     const pdfBlob = doc.output('blob');
     const pdfUrl = URL.createObjectURL(pdfBlob);
     window.open(pdfUrl, '_blank');
 }
 
-// ------------------- DIBUJAR PDF (COMPARTIDO) -------------------
+// ------------------- DIBUJAR PDF -------------------
 function dibujarPDF(doc, datos, codigoNota) {
     const { fecha, fechaEntrega, seniores, telefono, vendedor, transferidoA, tipoPago, total, descuento, adelanto, resta, productos } = datos;
 
@@ -412,7 +348,6 @@ function dibujarPDF(doc, datos, codigoNota) {
     doc.text(`Medio de pago: ${transferidoA}`, 20, 82);
     doc.text(`Tipo de pago: ${tipoPago}`, 20, 90);
 
-    // Tabla
     let yTabla = 110;
     doc.rect(20, yTabla, 170, 10);
     doc.line(40, yTabla, 40, yTabla + 10);
@@ -471,7 +406,10 @@ function obtenerDatosFormulario() {
         const inputCustom = fila.querySelector('.input-personalizado')?.value.trim();
         const detalleCustom = fila.querySelector('.detalle-personalizado')?.value.trim();
 
-        let baseProducto = (productoSelect.value === 'custom' || inputCustom) ? (inputCustom || "Producto sin nombre") : productoSelect.options[productoSelect.selectedIndex]?.text || "Sin producto";
+        let baseProducto = (productoSelect.value === 'custom' || inputCustom) 
+            ? (inputCustom || "Producto sin nombre") 
+            : productoSelect.options[productoSelect.selectedIndex]?.text || "Sin producto";
+
         let textoProducto = detalleCustom ? `${baseProducto} - ${detalleCustom}` : baseProducto;
 
         const cantidad = parseFloat(fila.querySelector('.cantidad').value) || 0;
@@ -495,25 +433,7 @@ function obtenerDatosFormulario() {
     };
 }
 
-function prepararFormData(datos, pdfBlob, codigoNota) {
-    const formData = new FormData();
-    formData.append("cliente", datos.seniores);
-    formData.append("telefono", datos.telefono);
-    formData.append("vendedor", datos.vendedor);
-    formData.append("fecha", datos.fecha);
-    formData.append("fechaEntrega", datos.fechaEntrega);
-    formData.append("total", datos.total);
-    formData.append("estado", datos.tipoPago);
-    formData.append("productos", JSON.stringify(datos.productos));
-    formData.append("pdf", pdfBlob, `nota_pedido_${codigoNota}.pdf`);
-    return formData;
-}
-
-
-
-
 // ------------------- GENERAR PDF (Proveedor) -------------------
-
 function generarNotaProveedor() {
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF();
@@ -521,10 +441,8 @@ function generarNotaProveedor() {
     const fecha = document.getElementById('fecha').value;
     const vendedor = document.getElementById('vendedor').value;
     const fechaEntrega = document.getElementById('fechaEntrega').value;
-    const tipoPago = document.getElementById('tipoPago').value;  // <-- AÑADIDO
     const codigoNota = generarCodigoUnico();
 
-    // Título
     doc.setFontSize(16);
     doc.setTextColor(97, 95, 95);
     doc.text("NOTA DE PEDIDO - PROVEEDOR", 40, 25);
@@ -533,13 +451,11 @@ function generarNotaProveedor() {
     doc.setFontSize(11);
     doc.text(`Código: ${codigoNota}`, 40, 39);
 
-    // Datos generales
     doc.setFontSize(10);
     doc.text(`Fecha: ${fecha}`, 20, 50);
     doc.text(`Vendedor: ${vendedor}`, 120, 50);
     doc.text(`Entrega: ${fechaEntrega}`, 20, 58);
 
-    // Tabla de productos (sin precios)
     let yTabla = 70;
     doc.rect(20, yTabla, 170, 10);
     doc.line(40, yTabla, 40, yTabla + 10);
@@ -562,30 +478,21 @@ function generarNotaProveedor() {
             textoProducto = productoSelect.options[productoSelect.selectedIndex]?.text || "Sin producto";
         }
 
-        // Ajustar texto
         let detalleTexto = doc.splitTextToSize(textoProducto, 145);
         let alturaFila = Math.max(detalleTexto.length * 5, 10);
 
-        // Dibujar celda
         doc.rect(20, yTabla, 170, alturaFila);
         doc.line(40, yTabla, 40, yTabla + alturaFila);
 
-        // Texto
         doc.text(String(cantidad), 30, yTabla + 6);
         doc.text(detalleTexto, 45, yTabla + 6);
 
         yTabla += alturaFila;
     });
 
-    // Logo
     if (logo) doc.addImage(logo, 'PNG', 15, 15, 25, 25);
-
-
-    // Guardar PDF
     doc.save(`nota_proveedor_${codigoNota}.pdf`);
 }
-
-
 
 // ------------------- CODIGO UNICO -------------------
 function generarCodigoUnico() {
@@ -597,7 +504,6 @@ function generarCodigoUnico() {
     localStorage.setItem('contador_' + fecha, contador);
     return `${fecha}-${contador}`;
 }
-
 
 // ------------------- ENVIAR POR WHATSAPP -------------------
 function enviarPorWhatsApp() {
@@ -657,5 +563,3 @@ function enviarPorWhatsApp() {
 function verNotas() {
     window.location.href = '/pages/notas.html';
 }
-
-
