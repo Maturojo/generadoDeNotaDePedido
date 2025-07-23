@@ -1,3 +1,5 @@
+let productos = [];
+
 // ------------------- CARGA DE PRODUCTOS -------------------
 async function cargarProductos() {
     try {
