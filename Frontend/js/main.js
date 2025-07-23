@@ -10,7 +10,9 @@ window.onload = function () {
         logo = img;
     };
 
+    // Ajustar fecha de hoy
     const hoy = new Date();
+    hoy.setMinutes(hoy.getMinutes() - hoy.getTimezoneOffset());
     document.getElementById('fecha').value = hoy.toISOString().split('T')[0];
 
     cargarProductos();
@@ -252,6 +254,52 @@ function solicitarClaveDescuento() {
     });
 }
 
+// ------------------- FECHAS DE ENTREGA -------------------
+function sumarDiasHabiles(fecha, diasHabiles) {
+    let contador = 0;
+    let fechaTemp = new Date(fecha);
+    while (contador < diasHabiles) {
+        fechaTemp.setDate(fechaTemp.getDate() + 1);
+        let dia = fechaTemp.getDay();
+        if (dia !== 0 && dia !== 6) contador++;
+    }
+    return fechaTemp;
+}
+
+function formatearFecha(fecha) {
+    let dia = fecha.getDate().toString().padStart(2, '0');
+    let mes = (fecha.getMonth() + 1).toString().padStart(2, '0');
+    let anio = fecha.getFullYear();
+    return `${dia}/${mes}/${anio}`;
+}
+
+function actualizarOpcionesEntrega() {
+    const hoy = new Date();
+    const fecha15 = formatearFecha(sumarDiasHabiles(hoy, 15));
+    const fecha20 = formatearFecha(sumarDiasHabiles(hoy, 20));
+
+    document.querySelector('#opcionEntrega option[value="15"]').textContent = `15 días hábiles (${fecha15})`;
+    document.querySelector('#opcionEntrega option[value="20"]').textContent = `20 días hábiles (${fecha20})`;
+}
+
+function cambiarEntrega() {
+    const opcion = document.getElementById('opcionEntrega').value;
+    const inputFecha = document.getElementById('fechaEntrega');
+    const hoy = new Date();
+    hoy.setMinutes(hoy.getMinutes() - hoy.getTimezoneOffset());
+
+    if (opcion === "especial") {
+        inputFecha.style.display = "block";
+        inputFecha.value = "";
+    } else {
+        inputFecha.style.display = "block";
+        const dias = parseInt(opcion);
+        const fechaEntrega = sumarDiasHabiles(hoy, dias);
+        fechaEntrega.setMinutes(fechaEntrega.getMinutes() - fechaEntrega.getTimezoneOffset());
+        inputFecha.value = fechaEntrega.toISOString().split('T')[0];
+    }
+}
+
 // ------------------- VALIDACIÓN -------------------
 function validarCampos() {
     const camposObligatorios = ['fecha', 'fechaEntrega', 'seniores', 'telefono', 'vendedor', 'transferidoA', 'tipoPago'];
@@ -409,7 +457,6 @@ function obtenerDatosFormulario() {
         let baseProducto = (productoSelect.value === 'custom' || inputCustom) 
             ? (inputCustom || "Producto sin nombre") 
             : productoSelect.options[productoSelect.selectedIndex]?.text || "Sin producto";
-
         let textoProducto = detalleCustom ? `${baseProducto} - ${detalleCustom}` : baseProducto;
 
         const cantidad = parseFloat(fila.querySelector('.cantidad').value) || 0;
@@ -431,6 +478,17 @@ function obtenerDatosFormulario() {
         resta: parseFloat(document.getElementById('resta').value) || 0,
         productos
     };
+}
+
+// ------------------- CODIGO UNICO -------------------
+function generarCodigoUnico() {
+    const hoy = new Date();
+    const fecha = hoy.getFullYear().toString() +
+                  String(hoy.getMonth() + 1).padStart(2, '0') +
+                  String(hoy.getDate()).padStart(2, '0');
+    let contador = parseInt(localStorage.getItem('contador_' + fecha) || '0') + 1;
+    localStorage.setItem('contador_' + fecha, contador);
+    return `${fecha}-${contador}`;
 }
 
 // ------------------- GENERAR PDF (Proveedor) -------------------
@@ -492,17 +550,6 @@ function generarNotaProveedor() {
 
     if (logo) doc.addImage(logo, 'PNG', 15, 15, 25, 25);
     doc.save(`nota_proveedor_${codigoNota}.pdf`);
-}
-
-// ------------------- CODIGO UNICO -------------------
-function generarCodigoUnico() {
-    const hoy = new Date();
-    const fecha = hoy.getFullYear().toString() +
-                  String(hoy.getMonth() + 1).padStart(2, '0') +
-                  String(hoy.getDate()).padStart(2, '0');
-    let contador = parseInt(localStorage.getItem('contador_' + fecha) || '0') + 1;
-    localStorage.setItem('contador_' + fecha, contador);
-    return `${fecha}-${contador}`;
 }
 
 // ------------------- ENVIAR POR WHATSAPP -------------------
