@@ -513,7 +513,9 @@ function dibujarPDF(doc, datos, codigoNota) {
     if (tipoPago !== "Pago completo") {
         yTotales += 10;
         doc.text(`RESTA: $${resta.toFixed(2)}`, 150, yTotales);
+        yTotales += 10;
         doc.text(`ADELANTO: $${adelanto.toFixed(2)}`, 150, yTotales);
+        yTotales += 10;
     }
 
     if (logo) doc.addImage(logo, 'PNG', 15, 15, 25, 25);
