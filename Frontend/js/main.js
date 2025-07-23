@@ -1,5 +1,5 @@
 // ------------------- VARIABLES GLOBALES -------------------
-let productos = [];
+
 let logo = null;
 
 // ------------------- INICIALIZACIÓN -------------------
