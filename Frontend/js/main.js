@@ -232,6 +232,11 @@ async function guardarNota() {
 
 
 // ------------------- OBTENER DATOS DEL FORMULARIO -------------------
+
+
+
+
+// ------------------- FUNCIONES AUXILIARES -------------------
 function obtenerDatosFormulario() {
     const productos = [];
     const filas = document.querySelectorAll('#detalles .row');
@@ -244,7 +249,6 @@ function obtenerDatosFormulario() {
         let baseProducto = (productoSelect.value === 'custom' || inputCustom) 
             ? (inputCustom || "Producto sin nombre") 
             : productoSelect.options[productoSelect.selectedIndex]?.text || "Sin producto";
-
         let textoProducto = detalleCustom ? `${baseProducto} - ${detalleCustom}` : baseProducto;
 
         const cantidad = parseFloat(fila.querySelector('.cantidad').value) || 0;
@@ -267,6 +271,8 @@ function obtenerDatosFormulario() {
         productos
     };
 }
+
+
 
 
 
