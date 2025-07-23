@@ -17,7 +17,7 @@ async function guardarNotaEnBackend(datos, pdfBlob = null, codigoNota = generarC
         formData.append("adelanto", datos.adelanto);
         formData.append("resta", datos.resta);
         formData.append("productos", JSON.stringify(datos.productos));
-
+   
         // Adjuntar PDF solo si existe
         if (pdfBlob) {
             formData.append("pdf", pdfBlob, `nota_pedido_${codigoNota}.pdf`);
