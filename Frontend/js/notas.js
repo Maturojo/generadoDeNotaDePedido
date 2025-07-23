@@ -1,0 +1,123 @@
+    document.addEventListener("DOMContentLoaded", () => {
+    cargarNotas();
+
+    document.getElementById("filtroCliente").addEventListener("input", cargarNotas);
+    document.getElementById("filtroVendedor").addEventListener("input", cargarNotas);
+    document.getElementById("filtroFecha").addEventListener("change", cargarNotas);
+    });
+
+    async function cargarNotas() {
+    try {
+        const response = await fetch(`${API_URL}/notas`);
+        if (!response.ok) throw new Error("Error al obtener notas");
+        const notas = await response.json();
+
+        // Aplicar filtros
+        const cliente = document.getElementById("filtroCliente").value.toLowerCase();
+        const vendedor = document.getElementById("filtroVendedor").value.toLowerCase();
+        const fechaFiltro = document.getElementById("filtroFecha").value;
+
+        const notasFiltradas = notas.filter(nota => {
+        const coincideCliente = nota.cliente?.toLowerCase().includes(cliente);
+        const coincideVendedor = nota.vendedor?.toLowerCase().includes(vendedor);
+        const coincideFecha = !fechaFiltro || nota.fecha === fechaFiltro;
+        return coincideCliente && coincideVendedor && coincideFecha;
+        });
+
+        renderNotasAgrupadas(notasFiltradas);
+    } catch (err) {
+        console.error("Error cargando notas:", err);
+        Swal.fire("Error", "No se pudieron cargar las notas.", "error");
+    }
+    }
+
+    function renderNotasAgrupadas(notas) {
+    const contenedor = document.getElementById("contenedorNotas");
+    contenedor.innerHTML = "";
+
+    const agrupadas = agruparPorFecha(notas);
+
+    Object.keys(agrupadas).forEach(fecha => {
+        const card = document.createElement("div");
+        card.classList.add("card", "mb-3");
+        card.innerHTML = `
+        <div class="card-header bg-primary text-white">
+            ${fecha}
+        </div>
+        <div class="card-body" id="grupo-${fecha}">
+            ${agrupadas[fecha].map(nota => crearHTMLNota(nota)).join("")}
+        </div>
+        `;
+        contenedor.appendChild(card);
+    });
+    }
+
+    function agruparPorFecha(notas) {
+    return notas.reduce((grupos, nota) => {
+        const fecha = nota.fecha;
+        if (!grupos[fecha]) grupos[fecha] = [];
+        grupos[fecha].push(nota);
+        return grupos;
+    }, {});
+    }
+
+    function crearHTMLNota(nota) {
+    return `
+        <div class="d-flex justify-content-between align-items-center border-bottom py-2">
+        <div>
+            <strong>${nota.cliente || "Sin cliente"}</strong> - 
+            ${nota.telefono} - 
+            ${nota.vendedor} - 
+            $${nota.total}
+        </div>
+        <div>
+            <button class="btn btn-sm btn-primary" onclick="verPDFNota('${nota.codigo}')">Ver PDF</button>
+            <button class="btn btn-sm btn-danger" onclick="eliminarNota('${nota.codigo}')">Eliminar</button>
+        </div>
+        </div>
+    `;
+    }
+
+    async function verPDFNota(codigo) {
+    try {
+        const response = await fetch(`${API_URL}/notas/${codigo}`);
+        if (!response.ok) throw new Error("Nota no encontrada");
+        const nota = await response.json();
+
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
+        dibujarPDF(doc, nota, codigo);
+        doc.save(`nota_pedido_${codigo}.pdf`);
+    } catch (err) {
+        console.error("Error generando PDF:", err);
+        Swal.fire("Error", "No se pudo generar el PDF de la nota.", "error");
+    }
+    }
+
+    async function eliminarNota(codigo) {
+    const confirm = await Swal.fire({
+        icon: "warning",
+        title: "¿Eliminar nota?",
+        text: "Esta acción no se puede deshacer.",
+        showCancelButton: true,
+        confirmButtonText: "Sí, eliminar",
+        cancelButtonText: "Cancelar"
+    });
+
+    if (!confirm.isConfirmed) return;
+
+    try {
+        const response = await fetch(`${API_URL}/notas/eliminar`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ codigo })
+        });
+
+        if (!response.ok) throw new Error("Error al eliminar nota");
+        Swal.fire("Eliminada", "La nota ha sido eliminada.", "success");
+        cargarNotas();
+    } catch (err) {
+        console.error("Error eliminando nota:", err);
+        Swal.fire("Error", "No se pudo eliminar la nota.", "error");
+    }
+    }
