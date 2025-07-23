@@ -68,6 +68,7 @@ function agruparPorFecha(notas) {
 }
 
 function crearHTMLNota(nota) {
+    console.log("Nota en crearHTMLNota:", nota);
     return `
         <div class="d-flex justify-content-between align-items-center border-bottom py-2">
         <div>
@@ -78,7 +79,8 @@ function crearHTMLNota(nota) {
         </div>
         <div>
             <button class="btn btn-sm btn-primary" onclick="verPDFNota('${nota.codigo}')">Ver PDF</button>
-            <button class="btn btn-sm btn-danger" onclick="eliminarNota('${nota.codigo}')">Eliminar</button>
+            <button class="btn btn-sm btn-danger" onclick="eliminarNota('${nota.codigo || nota.codigoNota}')">Eliminar</button>
+
         </div>
         </div>
     `;
