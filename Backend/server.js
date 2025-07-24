@@ -118,9 +118,7 @@ app.get('/clientes', async (req, res) => {
     }
 });
 
-function generarCodigoUnico() {
-    return 'N-' + Date.now().toString(36).toUpperCase();
-}
+
 
 // -------------------- CRUD NOTAS DE PEDIDO --------------------
 app.post('/notas', upload.single('pdf'), async (req, res) => {
@@ -145,7 +143,7 @@ app.post('/notas', upload.single('pdf'), async (req, res) => {
         const { cliente, telefono, vendedor, fecha, fechaEntrega, total, estado } = req.body;
 
         const nuevaNota = new NotaPedido({
-            codigo: generarCodigoUnico(), // <--- AÑADIMOS EL CÓDIGO
+            codigo,
             cliente,
             telefono,
             vendedor,
