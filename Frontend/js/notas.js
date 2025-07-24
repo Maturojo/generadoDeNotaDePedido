@@ -9,7 +9,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
 // ------------------- CARGAR NOTAS -------------------
 async function cargarNotas() {
-    console.log("Cargando notas desde API...");
+    console.log("Cargando notas desde API...", API_URL);
     try {
         const response = await fetch(`${API_URL}/notas`);
         if (!response.ok) throw new Error("Error al obtener notas");
@@ -24,7 +24,7 @@ async function cargarNotas() {
         const notasFiltradas = notas.filter(nota => {
             const coincideCliente = nota.cliente?.toLowerCase().includes(cliente);
             const coincideVendedor = nota.vendedor?.toLowerCase().includes(vendedor);
-            const coincideFecha = !fechaFiltro || nota.fecha === fechaFiltro;
+            const coincideFecha = !fechaFiltro || nota.fecha.split("T")[0] === fechaFiltro;
             return coincideCliente && coincideVendedor && coincideFecha;
         });
 
@@ -60,13 +60,37 @@ function renderNotasAgrupadas(notas) {
 
 function agruparPorFecha(notas) {
     return notas.reduce((grupos, nota) => {
-        const fecha = nota.fecha;
+        const fecha = nota.fecha.split("T")[0];
         if (!grupos[fecha]) grupos[fecha] = [];
         grupos[fecha].push(nota);
         return grupos;
     }, {});
 }
 
+// ------------------- CREAR HTML DE UNA NOTA -------------------
+function crearHTMLNota(nota) {
+    console.log("Nota en crearHTMLNota:", nota);
+
+    const codigoNota = nota.codigo || nota.codigoNota || "SIN_CODIGO";
+
+    return `
+        <div class="d-flex justify-content-between align-items-center border-bottom py-2">
+            <div>
+                <strong>${nota.cliente || "Sin cliente"}</strong> - 
+                ${nota.telefono || "Sin teléfono"} - 
+                ${nota.vendedor || "Sin vendedor"} - 
+                $${nota.total || 0} - 
+                <span class="badge bg-secondary">Código: ${codigoNota}</span>
+            </div>
+            <div>
+                <button class="btn btn-sm btn-primary" onclick="verPDFNota('${codigoNota}')">Ver PDF</button>
+                <button class="btn btn-sm btn-danger" onclick="eliminarNota('${codigoNota}')">Eliminar</button>
+            </div>
+        </div>
+    `;
+}
+
+// ------------------- VER PDF DE NOTA -------------------
 async function verPDFNota(codigo) {
     console.log("Ver PDF de la nota:", codigo);
     try {
@@ -75,10 +99,10 @@ async function verPDFNota(codigo) {
         const nota = await response.json();
         console.log("Nota recuperada para PDF:", nota);
 
-        const { jsPDF } = window.jspdf; // Ahora sí estará definido
+        const { jsPDF } = window.jspdf;
         const doc = new jsPDF();
 
-        // Dibujar la nota con datos del backend
+        // Construir el PDF con los datos de la nota
         dibujarPDF(doc, {
             fecha: new Date(nota.fecha).toLocaleDateString(),
             fechaEntrega: new Date(nota.fechaEntrega).toLocaleDateString(),
@@ -101,27 +125,9 @@ async function verPDFNota(codigo) {
     }
 }
 
-
-// ------------------- VER PDF DE NOTA -------------------
-async function verPDFNota(codigo) {
-    try {
-        const response = await fetch(`${API_URL}/notas/codigo/${codigo}`);
-        if (!response.ok) throw new Error("Nota no encontrada");
-        const nota = await response.json();
-
-        const { jsPDF } = window.jspdf;
-        const doc = new jsPDF();
-        dibujarPDF(doc, nota, codigo);
-        window.open(doc.output('bloburl'), '_blank');
-    } catch (err) {
-        console.error("Error generando PDF:", err);
-        Swal.fire("Error", "No se pudo generar el PDF de la nota.", "error");
-    }
-}
-
-
 // ------------------- ELIMINAR NOTA -------------------
 async function eliminarNota(codigo) {
+    console.log("Intentando eliminar nota:", codigo);
     const confirm = await Swal.fire({
         icon: "warning",
         title: "¿Eliminar nota?",
