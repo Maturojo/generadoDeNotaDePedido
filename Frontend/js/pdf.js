@@ -1,5 +1,6 @@
 // ------------------- GENERAR PDF -------------------
-async function generarPDF() {
+// ------------------- VER PDF (SOLO GENERAR) -------------------
+function verPDF() {
     if (!validarCampos()) return;
 
     const { jsPDF } = window.jspdf;
@@ -9,27 +10,16 @@ async function generarPDF() {
     // Cliente por defecto
     datos.seniores = datos.seniores?.trim() || "Sin cliente";
 
-    // Generamos el código único
+    // Generamos un código temporal (no se guarda en backend)
     const codigoNota = generarCodigoUnico();
 
     // Dibujamos el PDF
     dibujarPDF(doc, datos, codigoNota);
 
-    // Guardar PDF en disco
-    doc.save(`nota_pedido_${codigoNota}.pdf`);
-
-    // Guardar en backend
-    const pdfBlob = doc.output('blob');
-    const codigoReal = await guardarNotaEnBackend(datos, pdfBlob);
-    if (!codigoReal) return;
-
-    Swal.fire({
-        icon: "success",
-        title: "¡Nota Guardada!",
-        text: `La nota fue guardada con el código ${codigoReal}.`,
-        confirmButtonText: "OK"
-    });
+    // Abrir PDF en nueva pestaña (vista previa)
+    window.open(doc.output('bloburl'), '_blank');
 }
+
 
 // ------------------- DIBUJAR PDF -------------------
 function dibujarPDF(doc, datos, codigoNota) {
