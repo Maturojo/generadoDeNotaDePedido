@@ -16,8 +16,11 @@ function verPDF() {
     // Dibujamos el PDF
     dibujarPDF(doc, datos, codigoNota);
 
-    // Abrir PDF en nueva pestaña (vista previa)
-    window.open(doc.output('bloburl'), '_blank');
+    
+    // Reemplazamos espacios por guiones bajos para el nombre del archivo
+    const nombreCliente = datos.seniores.replace(/\s+/g, "_");
+    doc.save(`nota_${nombreCliente}_${codigoNota}.pdf`);
+
 }
 
 
