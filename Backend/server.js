@@ -40,19 +40,24 @@ const ClienteSchema = new mongoose.Schema({
     email: String
 });
 const Cliente = mongoose.model('Cliente', ClienteSchema);
-
 const NotaPedidoSchema = new mongoose.Schema({
-    codigo: { type: String, required: true },  // <--- NUEVO CAMPO
+    codigo: { type: String, required: true },
     cliente: String,
     telefono: String,
     vendedor: String,
     fecha: Date,
     fechaEntrega: Date,
+    transferidoA: String,      // NUEVO
+    tipoPago: String,          // NUEVO
     total: Number,
+    descuento: { type: Number, default: 0 },
+    adelanto: { type: Number, default: 0 },
+    resta: { type: Number, default: 0 },
     estado: { type: String, default: 'pendiente' },
     productos: [
         {
             nombre: String,
+            detalle: String,    // NUEVO, por si usas "detalle" en lugar de nombre
             cantidad: Number,
             precioUnitario: Number,
             subtotal: Number
@@ -60,6 +65,7 @@ const NotaPedidoSchema = new mongoose.Schema({
     ],
     pdf: { data: Buffer, contentType: String }
 });
+
 const NotaPedido = mongoose.model('NotaPedido', NotaPedidoSchema);
 
 // -------------------- MULTER --------------------
@@ -123,10 +129,7 @@ app.get('/clientes', async (req, res) => {
 // -------------------- CRUD NOTAS DE PEDIDO --------------------
 app.post('/notas', upload.single('pdf'), async (req, res) => {
     try {
-        console.log("BODY COMPLETO:");
-        console.dir(req.body, { depth: null });
-        console.log("FILE:");
-        console.dir(req.file);
+        console.log("BODY COMPLETO:", req.body);
 
         let productosData = [];
         if (req.body.productos) {
@@ -140,7 +143,11 @@ app.post('/notas', upload.single('pdf'), async (req, res) => {
             }
         }
 
-        const { codigo, cliente, telefono, vendedor, fecha, fechaEntrega, total, estado } = req.body;
+        const {
+            codigo, cliente, telefono, vendedor,
+            fecha, fechaEntrega, transferidoA, tipoPago,
+            total, descuento, adelanto, resta, estado
+        } = req.body;
 
         const nuevaNota = new NotaPedido({
             codigo,
@@ -149,7 +156,12 @@ app.post('/notas', upload.single('pdf'), async (req, res) => {
             vendedor,
             fecha: new Date(fecha),
             fechaEntrega: new Date(fechaEntrega),
+            transferidoA,
+            tipoPago,
             total,
+            descuento: descuento || 0,
+            adelanto: adelanto || 0,
+            resta: resta || 0,
             estado,
             productos: productosData,
             pdf: req.file ? { data: req.file.buffer, contentType: req.file.mimetype } : null
@@ -162,6 +174,7 @@ app.post('/notas', upload.single('pdf'), async (req, res) => {
         res.status(500).json({ error: `Error guardando nota de pedido: ${error.message}` });
     }
 });
+
 
 app.get('/notas', async (req, res) => {
     try {

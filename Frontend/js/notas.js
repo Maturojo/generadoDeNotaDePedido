@@ -1,3 +1,11 @@
+// ------------------- VARIABLES -------------------
+let logo = null;
+const img = new Image();
+img.src = 'assets/logo-linea-gris.png';
+img.onload = function () {
+    logo = img;
+};
+
 document.addEventListener("DOMContentLoaded", () => {
     console.log("Notas.js cargado correctamente.");
     cargarNotas();
@@ -71,7 +79,7 @@ function agruparPorFecha(notas) {
 function crearHTMLNota(nota) {
     console.log("Nota en crearHTMLNota:", nota);
 
-    const codigoNota = nota.codigo || nota.codigoNota || "SIN_CODIGO";
+    const codigoNota = nota.codigo || "SIN_CODIGO";
 
     return `
         <div class="d-flex justify-content-between align-items-center border-bottom py-2">
@@ -90,73 +98,6 @@ function crearHTMLNota(nota) {
     `;
 }
 
-// ------------------- DIBUJAR PDF -------------------
-function dibujarPDF(doc, datos, codigoNota) {
-    const {
-        fecha, fechaEntrega, seniores, telefono,
-        vendedor, transferidoA, tipoPago,
-        total, descuento, adelanto, resta, productos
-    } = datos;
-
-    // Encabezado
-    doc.setFontSize(16);
-    doc.setTextColor(97, 95, 95);
-    doc.text("NOTA DE PEDIDO", 60, 20);
-    doc.setFontSize(12);
-    doc.text("SUR MADERAS", 60, 27);
-    doc.setFontSize(11);
-    doc.text(`Código: ${codigoNota}`, 60, 34);
-
-    // Datos generales
-    doc.setFontSize(10);
-    doc.text(`Fecha: ${fecha}`, 20, 45);
-    doc.text(`Entrega: ${fechaEntrega}`, 120, 45);
-    doc.text(`Señores: ${seniores}`, 20, 52);
-    doc.text(`Teléfono: ${telefono}`, 20, 59);
-    doc.text(`Vendedor: ${vendedor}`, 20, 66);
-    doc.text(`Medio de pago: ${transferidoA}`, 20, 73);
-    doc.text(`Tipo de pago: ${tipoPago}`, 20, 80);
-
-    // Tabla productos
-    let yTabla = 95;
-    doc.setFillColor(230, 230, 230);
-    doc.rect(20, yTabla, 170, 8, "F");
-    doc.text("CANT.", 23, yTabla + 6);
-    doc.text("DETALLE", 60, yTabla + 6);
-    doc.text("IMPORTE", 180, yTabla + 6, { align: 'right' });
-    yTabla += 8;
-
-    (productos || []).forEach(prod => {
-        const detalleTexto = doc.splitTextToSize(prod.nombre || prod.detalle, 100);
-        const alturaFila = Math.max(detalleTexto.length * 5, 8);
-
-        doc.rect(20, yTabla, 170, alturaFila);
-        doc.line(40, yTabla, 40, yTabla + alturaFila);
-        doc.line(150, yTabla, 150, yTabla + alturaFila);
-
-        doc.text(String(prod.cantidad), 30, yTabla + 5);
-        doc.text(detalleTexto, 45, yTabla + 5);
-        doc.text(`$${(prod.subtotal || 0).toFixed(2)}`, 185, yTabla + 5, { align: 'right' });
-
-        yTabla += alturaFila;
-    });
-
-    // Totales
-    let yTotales = yTabla + 10;
-    if (descuento > 0) {
-        doc.text(`Descuento: $${descuento.toFixed(2)}`, 150, yTotales);
-        yTotales += 10;
-    }
-    doc.text(`TOTAL: $${total.toFixed(2)}`, 150, yTotales);
-    if (tipoPago !== "Pago completo") {
-        yTotales += 10;
-        doc.text(`ADELANTO: $${adelanto.toFixed(2)}`, 150, yTotales);
-        yTotales += 10;
-        doc.text(`RESTA: $${resta.toFixed(2)}`, 150, yTotales);
-    }
-}
-
-
 // ------------------- VER PDF DE NOTA -------------------
 async function verPDFNota(codigo) {
     console.log("Ver PDF de la nota:", codigo);
@@ -171,18 +112,18 @@ async function verPDFNota(codigo) {
 
         // Construir el PDF con los datos de la nota
         dibujarPDF(doc, {
-            fecha: new Date(nota.fecha).toLocaleDateString(),
-            fechaEntrega: new Date(nota.fechaEntrega).toLocaleDateString(),
-            seniores: nota.cliente,
-            telefono: nota.telefono,
-            vendedor: nota.vendedor,
+            fecha: nota.fecha.split("T")[0],
+            fechaEntrega: nota.fechaEntrega.split("T")[0],
+            seniores: nota.cliente || "Sin cliente",
+            telefono: nota.telefono || "-",
+            vendedor: nota.vendedor || "-",
             transferidoA: nota.transferidoA || "-",
             tipoPago: nota.tipoPago || "No informado",
-            total: nota.total,
+            total: nota.total || 0,
             descuento: nota.descuento || 0,
             adelanto: nota.adelanto || 0,
             resta: nota.resta || 0,
-            productos: nota.productos
+            productos: nota.productos || []
         }, codigo);
 
         window.open(doc.output('bloburl'), '_blank');
@@ -214,5 +155,81 @@ async function eliminarNota(codigo) {
     } catch (err) {
         console.error("Error eliminando nota:", err);
         Swal.fire("Error", "No se pudo eliminar la nota.", "error");
+    }
+}
+
+// ------------------- DIBUJAR PDF (IGUAL AL INDEX) -------------------
+function dibujarPDF(doc, datos, codigoNota) {
+    const {
+        fecha, fechaEntrega, seniores, telefono,
+        vendedor, transferidoA, tipoPago,
+        total, descuento, adelanto, resta, productos
+    } = datos;
+
+    doc.setFontSize(16);
+    doc.setTextColor(97, 95, 95);
+    doc.text("NOTA DE PEDIDO", 60, 25);
+    doc.setFontSize(12);
+    doc.text("SUR MADERAS", 60, 32);
+    doc.setFontSize(11);
+    doc.text(`Código: ${codigoNota}`, 60, 39);
+
+    doc.setFontSize(10);
+    doc.text(`Fecha: ${fecha}`, 20, 50);
+    doc.text(`Entrega: ${fechaEntrega}`, 120, 50);
+    doc.text(`Señores: ${seniores}`, 20, 58);
+    doc.text(`Teléfono: ${telefono}`, 20, 66);
+    doc.text(`Vendedor: ${vendedor}`, 20, 74);
+    doc.text(`Medio de pago: ${transferidoA}`, 20, 82);
+    doc.text(`Tipo de pago: ${tipoPago}`, 20, 90);
+
+    // Tabla productos
+    let yTabla = 110;
+    doc.rect(20, yTabla, 170, 10);
+    doc.line(40, yTabla, 40, yTabla + 10);
+    doc.line(150, yTabla, 150, yTabla + 10);
+    doc.text("CANT.", 22, yTabla + 7);
+    doc.text("DETALLE", 60, yTabla + 7);
+    doc.text("IMPORTE", 185, yTabla + 7, { align: 'right' });
+    yTabla += 10;
+
+    (productos || []).forEach(prod => {
+        const textoProducto = prod.detalle || prod.nombre || "Sin detalle";
+        const detalleTexto = doc.splitTextToSize(textoProducto, 105);
+        const alturaFila = Math.max(detalleTexto.length * 5, 10);
+
+        doc.rect(20, yTabla, 170, alturaFila);
+        doc.line(40, yTabla, 40, yTabla + alturaFila);
+        doc.line(150, yTabla, 150, yTabla + alturaFila);
+
+        doc.text(String(prod.cantidad), 30, yTabla + 6);
+        doc.text(detalleTexto, 45, yTabla + 6);
+        doc.text(`$ ${(prod.subtotal || 0).toFixed(2)}`, 188, yTabla + 6, { align: 'right' });
+
+        yTabla += alturaFila;
+    });
+
+    let yTotales = yTabla + 5;
+    if (descuento > 0) {
+        doc.text(`Descuento: $${descuento.toFixed(2)}`, 150, yTotales);
+        yTotales += 10;
+    }
+
+    doc.text(`TOTAL: $${total.toFixed(2)}`, 150, yTotales);
+    if (tipoPago !== "Pago completo") {
+        yTotales += 10;
+        doc.text(`RESTA: $${resta.toFixed(2)}`, 150, yTotales);
+        yTotales += 10;
+        doc.text(`ADELANTO: $${adelanto.toFixed(2)}`, 150, yTotales);
+        yTotales += 10;
+    }
+
+    if (logo) doc.addImage(logo, 'PNG', 15, 15, 25, 25);
+
+    if (tipoPago === "Pago completo") {
+        doc.setFontSize(30);
+        doc.setTextColor(0, 0, 0);
+        doc.setFont("helvetica", "bold");
+        doc.text("PAGADO", 160, 30, { align: "center" });
     }
 }
