@@ -75,18 +75,18 @@ function crearHTMLNota(nota) {
             <strong>${nota.cliente || "Sin cliente"}</strong> - 
             ${nota.telefono} - 
             ${nota.vendedor} - 
-            $${nota.total}
+            $${nota.total} - 
+            <span class="badge bg-secondary">Código: ${nota.codigo || nota.codigoNota}</span>
         </div>
         <div>
-            <button class="btn btn-sm btn-primary" onclick="verPDFNota('${nota.codigo}')">Ver PDF</button>
+            <button class="btn btn-sm btn-primary" onclick="verPDFNota('${nota.codigo || nota.codigoNota}')">Ver PDF</button>
             <button class="btn btn-sm btn-danger" onclick="eliminarNota('${nota.codigo || nota.codigoNota}')">Eliminar</button>
-
         </div>
         </div>
     `;
 }
 
-// ------------------- VER PDF -------------------
+// ------------------- VER PDF DE NOTA -------------------
 async function verPDFNota(codigo) {
     console.log("Ver PDF de la nota:", codigo);
     try {
@@ -98,7 +98,9 @@ async function verPDFNota(codigo) {
         const { jsPDF } = window.jspdf;
         const doc = new jsPDF();
         dibujarPDF(doc, nota, codigo);
-        doc.save(`nota_pedido_${codigo}.pdf`);
+
+        // Solo vista previa
+        window.open(doc.output('bloburl'), '_blank');
     } catch (err) {
         console.error("Error generando PDF:", err);
         Swal.fire("Error", "No se pudo generar el PDF de la nota.", "error");
