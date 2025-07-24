@@ -67,27 +67,38 @@ function agruparPorFecha(notas) {
     }, {});
 }
 
-function crearHTMLNota(nota) {
-    console.log("Nota en crearHTMLNota:", nota); // Debug para verificar los campos
+async function verPDFNota(codigo) {
+    console.log("Ver PDF de la nota:", codigo);
+    try {
+        const response = await fetch(`${API_URL}/notas/codigo/${codigo}`);
+        if (!response.ok) throw new Error("Nota no encontrada");
+        const nota = await response.json();
+        console.log("Nota recuperada para PDF:", nota);
 
-    // Validar que nota.codigo esté definido
-    const codigoNota = nota.codigo ? nota.codigo : (nota.codigoNota || 'SIN_CODIGO');
+        const { jsPDF } = window.jspdf; // Ahora sí estará definido
+        const doc = new jsPDF();
 
-    return `
-        <div class="d-flex justify-content-between align-items-center border-bottom py-2">
-            <div>
-                <strong>${nota.cliente || "Sin cliente"}</strong> - 
-                ${nota.telefono || "Sin teléfono"} - 
-                ${nota.vendedor || "Sin vendedor"} - 
-                $${nota.total || 0} - 
-                <span class="badge bg-secondary">Código: ${codigoNota}</span>
-            </div>
-            <div>
-                <button class="btn btn-sm btn-primary" onclick="verPDFNota('${codigoNota}')">Ver PDF</button>
-                <button class="btn btn-sm btn-danger" onclick="eliminarNota('${codigoNota}')">Eliminar</button>
-            </div>
-        </div>
-    `;
+        // Dibujar la nota con datos del backend
+        dibujarPDF(doc, {
+            fecha: new Date(nota.fecha).toLocaleDateString(),
+            fechaEntrega: new Date(nota.fechaEntrega).toLocaleDateString(),
+            seniores: nota.cliente,
+            telefono: nota.telefono,
+            vendedor: nota.vendedor,
+            transferidoA: nota.transferidoA || "-",
+            tipoPago: nota.tipoPago || "No informado",
+            total: nota.total,
+            descuento: nota.descuento || 0,
+            adelanto: nota.adelanto || 0,
+            resta: nota.resta || 0,
+            productos: nota.productos
+        }, codigo);
+
+        window.open(doc.output('bloburl'), '_blank');
+    } catch (err) {
+        console.error("Error generando PDF:", err);
+        Swal.fire("Error", "No se pudo generar el PDF de la nota.", "error");
+    }
 }
 
 
