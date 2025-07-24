@@ -140,7 +140,7 @@ app.post('/notas', upload.single('pdf'), async (req, res) => {
             }
         }
 
-        const { cliente, telefono, vendedor, fecha, fechaEntrega, total, estado } = req.body;
+        const { codigo, cliente, telefono, vendedor, fecha, fechaEntrega, total, estado } = req.body;
 
         const nuevaNota = new NotaPedido({
             codigo,
