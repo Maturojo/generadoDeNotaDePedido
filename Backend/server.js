@@ -42,6 +42,7 @@ const ClienteSchema = new mongoose.Schema({
 const Cliente = mongoose.model('Cliente', ClienteSchema);
 
 const NotaPedidoSchema = new mongoose.Schema({
+    codigo: { type: String, required: true },  // <--- NUEVO CAMPO
     cliente: String,
     telefono: String,
     vendedor: String,
@@ -117,6 +118,10 @@ app.get('/clientes', async (req, res) => {
     }
 });
 
+function generarCodigoUnico() {
+    return 'N-' + Date.now().toString(36).toUpperCase();
+}
+
 // -------------------- CRUD NOTAS DE PEDIDO --------------------
 app.post('/notas', upload.single('pdf'), async (req, res) => {
     try {
@@ -140,6 +145,7 @@ app.post('/notas', upload.single('pdf'), async (req, res) => {
         const { cliente, telefono, vendedor, fecha, fechaEntrega, total, estado } = req.body;
 
         const nuevaNota = new NotaPedido({
+            codigo: generarCodigoUnico(), // <--- AÑADIMOS EL CÓDIGO
             cliente,
             telefono,
             vendedor,
