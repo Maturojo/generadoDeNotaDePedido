@@ -1,7 +1,7 @@
 // ------------------- VARIABLES -------------------
 let logo = null;
 const img = new Image();
-img.src = 'assets/logo-linea-gris.png';
+img.src = '../assets/logo-linea-gris.png';
 img.onload = function () {
     logo = img;
 };

@@ -1,1 +1,1 @@
-git add -A && git commit -m "agrege consol.logs y codigo extra" && git push
+git add -A && git commit -m "agregue dibujar pdf igual al index y mejore server.js" && git push
