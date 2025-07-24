@@ -88,18 +88,14 @@ function crearHTMLNota(nota) {
 
 // ------------------- VER PDF DE NOTA -------------------
 async function verPDFNota(codigo) {
-    console.log("Ver PDF de la nota:", codigo);
     try {
-        const response = await fetch(`${API_URL}/notas/${codigo}`);
+        const response = await fetch(`${API_URL}/notas/codigo/${codigo}`);
         if (!response.ok) throw new Error("Nota no encontrada");
         const nota = await response.json();
-        console.log("Nota recuperada para PDF:", nota);
 
         const { jsPDF } = window.jspdf;
         const doc = new jsPDF();
         dibujarPDF(doc, nota, codigo);
-
-        // Solo vista previa
         window.open(doc.output('bloburl'), '_blank');
     } catch (err) {
         console.error("Error generando PDF:", err);
@@ -107,9 +103,9 @@ async function verPDFNota(codigo) {
     }
 }
 
+
 // ------------------- ELIMINAR NOTA -------------------
 async function eliminarNota(codigo) {
-    console.log("Intentando eliminar nota:", codigo);
     const confirm = await Swal.fire({
         icon: "warning",
         title: "¿Eliminar nota?",
@@ -122,14 +118,8 @@ async function eliminarNota(codigo) {
     if (!confirm.isConfirmed) return;
 
     try {
-        const response = await fetch(`${API_URL}/notas/eliminar`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ codigo })
-        });
-
+        const response = await fetch(`${API_URL}/notas/${codigo}`, { method: "DELETE" });
         if (!response.ok) throw new Error("Error al eliminar nota");
-        console.log("Nota eliminada correctamente:", codigo);
         Swal.fire("Eliminada", "La nota ha sido eliminada.", "success");
         cargarNotas();
     } catch (err) {

@@ -188,6 +188,35 @@ app.get('/notas/:id/pdf', async (req, res) => {
     }
 });
 
+// Obtener nota por código
+app.get('/notas/codigo/:codigo', async (req, res) => {
+    try {
+        const nota = await NotaPedido.findOne({ codigo: req.params.codigo });
+        if (!nota) {
+            return res.status(404).json({ error: "Nota no encontrada" });
+        }
+        res.json(nota);
+    } catch (error) {
+        console.error("Error obteniendo nota por código:", error);
+        res.status(500).json({ error: "Error obteniendo nota" });
+    }
+});
+
+// Eliminar nota por código
+app.delete('/notas/:codigo', async (req, res) => {
+    try {
+        const result = await NotaPedido.deleteOne({ codigo: req.params.codigo });
+        if (result.deletedCount === 0) {
+            return res.status(404).json({ error: "Nota no encontrada" });
+        }
+        res.json({ message: "Nota eliminada correctamente" });
+    } catch (error) {
+        console.error("Error eliminando nota:", error);
+        res.status(500).json({ error: "Error eliminando nota" });
+    }
+});
+
+
 // -------------------- INICIAR SERVIDOR --------------------
 app.listen(PORT, () => {
     console.log(`Servidor backend corriendo en puerto ${PORT}`);
