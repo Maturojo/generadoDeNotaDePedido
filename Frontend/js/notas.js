@@ -68,23 +68,28 @@ function agruparPorFecha(notas) {
 }
 
 function crearHTMLNota(nota) {
-    console.log("Nota en crearHTMLNota:", nota);
+    console.log("Nota en crearHTMLNota:", nota); // Debug para verificar los campos
+
+    // Validar que nota.codigo esté definido
+    const codigoNota = nota.codigo ? nota.codigo : (nota.codigoNota || 'SIN_CODIGO');
+
     return `
         <div class="d-flex justify-content-between align-items-center border-bottom py-2">
-        <div>
-            <strong>${nota.cliente || "Sin cliente"}</strong> - 
-            ${nota.telefono} - 
-            ${nota.vendedor} - 
-            $${nota.total} - 
-            <span class="badge bg-secondary">Código: ${nota.codigo || nota.codigoNota}</span>
-        </div>
-        <div>
-            <button class="btn btn-sm btn-primary" onclick="verPDFNota('${nota.codigo || nota.codigoNota}')">Ver PDF</button>
-            <button class="btn btn-sm btn-danger" onclick="eliminarNota('${nota.codigo || nota.codigoNota}')">Eliminar</button>
-        </div>
+            <div>
+                <strong>${nota.cliente || "Sin cliente"}</strong> - 
+                ${nota.telefono || "Sin teléfono"} - 
+                ${nota.vendedor || "Sin vendedor"} - 
+                $${nota.total || 0} - 
+                <span class="badge bg-secondary">Código: ${codigoNota}</span>
+            </div>
+            <div>
+                <button class="btn btn-sm btn-primary" onclick="verPDFNota('${codigoNota}')">Ver PDF</button>
+                <button class="btn btn-sm btn-danger" onclick="eliminarNota('${codigoNota}')">Eliminar</button>
+            </div>
         </div>
     `;
 }
+
 
 // ------------------- VER PDF DE NOTA -------------------
 async function verPDFNota(codigo) {
