@@ -1,5 +1,4 @@
 // ------------------- VARIABLES GLOBALES -------------------
-
 let logo = null;
 
 // ------------------- INICIALIZACIÓN -------------------
@@ -19,20 +18,36 @@ window.onload = function () {
     actualizarOpcionesEntrega();
     cambiarEntrega();
 
-    document.getElementById('adelanto').addEventListener('input', calcularTotal);
-    document.getElementById('descuento').addEventListener('input', calcularTotal);
-    document.getElementById('tipoPago').addEventListener('change', toggleResta);
-    document.getElementById('descuento').addEventListener('click', solicitarClaveDescuento);
-    document.getElementById("generarProveedor").addEventListener("click", generarNotaProveedor);
+    // Listeners seguros
+    const adelantoInput = document.getElementById('adelanto');
+    if (adelantoInput) adelantoInput.addEventListener('input', calcularTotal);
+
+    const descuentoInput = document.getElementById('descuento');
+    if (descuentoInput) {
+        descuentoInput.addEventListener('input', calcularTotal);
+        descuentoInput.addEventListener('click', solicitarClaveDescuento);
+    }
+
+    const tipoPagoSelect = document.getElementById('tipoPago');
+    if (tipoPagoSelect) tipoPagoSelect.addEventListener('change', toggleResta);
+
+    const generarProveedorBtn = document.getElementById("generarProveedor");
+    if (generarProveedorBtn) generarProveedorBtn.addEventListener("click", generarNotaProveedor);
 
     const telefonoInput = document.getElementById('telefono');
-    telefonoInput.addEventListener('input', function (e) {
-        formatearTelefono(e);
-        validarTelefonoEnTiempoReal();
-    });
+    if (telefonoInput) {
+        telefonoInput.addEventListener('input', function (e) {
+            formatearTelefono(e);
+            validarTelefonoEnTiempoReal();
+        });
+    }
 
-    agregarListenersFila(document.querySelector('#detalles .row'));
+    // Listener para la primera fila
+    const primeraFila = document.querySelector('#detalles .row');
+    if (primeraFila) agregarListenersFila(primeraFila);
+
     toggleResta();
+    calcularTotal(); // Calcular total al cargar
 };
 
 // ------------------- FORMATEAR Y VALIDAR TELÉFONO -------------------
@@ -46,11 +61,6 @@ function formatearTelefono(e) {
         e.target.value = input;
     }
 }
-
-
-
-
-
 
 // ------------------- LISTENERS DE PRECIO Y CANTIDAD -------------------
 function agregarListenersFila(row) {
@@ -94,35 +104,38 @@ function agregarFilaProducto() {
 function calcularTotal() {
     let total = 0;
     document.querySelectorAll('#detalles .row').forEach(row => {
-        const precio = parseFloat(row.querySelector('.precio').value) || 0;
-        const cantidad = parseInt(row.querySelector('.cantidad').value) || 0;
+        const precio = parseFloat(row.querySelector('.precio')?.value) || 0;
+        const cantidad = parseInt(row.querySelector('.cantidad')?.value) || 0;
         total += precio * cantidad;
     });
 
-    const descuento = parseFloat(document.getElementById('descuento').value) || 0;
+    const descuento = parseFloat(document.getElementById('descuento')?.value) || 0;
     total = Math.max(total - descuento, 0);
 
-    document.getElementById('total').value = total.toFixed(2);
+    const totalInput = document.getElementById('total');
+    if (totalInput) totalInput.value = total.toFixed(2);
 
-    const adelanto = parseFloat(document.getElementById('adelanto').value) || 0;
-    const tipoPago = document.getElementById('tipoPago').value;
+    const adelanto = parseFloat(document.getElementById('adelanto')?.value) || 0;
+    const tipoPago = document.getElementById('tipoPago')?.value;
 
-    if (tipoPago === "Pago completo") {
-        document.getElementById('resta').value = 0;
-    } else {
-        document.getElementById('resta').value = (total - adelanto).toFixed(2);
+    const restaInput = document.getElementById('resta');
+    if (restaInput) {
+        if (tipoPago === "Pago completo") {
+            restaInput.value = 0;
+        } else {
+            restaInput.value = (total - adelanto).toFixed(2);
+        }
     }
 }
 
 function toggleResta() {
-    const tipoPago = document.getElementById('tipoPago').value;
+    const tipoPago = document.getElementById('tipoPago')?.value;
     const restaCol = document.getElementById('resta-col');
-    restaCol.style.display = (tipoPago === "Pago completo") ? "none" : "block"; 
+    if (restaCol) {
+        restaCol.style.display = (tipoPago === "Pago completo") ? "none" : "block"; 
+    }
     calcularTotal();
 }
-
-// ------------------- CLAVE PARA DESCUENTO -------------------
-
 
 // ------------------- FECHAS DE ENTREGA -------------------
 function sumarDiasHabiles(fecha, diasHabiles) {
@@ -148,12 +161,14 @@ function actualizarOpcionesEntrega() {
     const fecha15 = formatearFecha(sumarDiasHabiles(hoy, 15));
     const fecha20 = formatearFecha(sumarDiasHabiles(hoy, 20));
 
-    document.querySelector('#opcionEntrega option[value="15"]').textContent = `15 días hábiles (${fecha15})`;
-    document.querySelector('#opcionEntrega option[value="20"]').textContent = `20 días hábiles (${fecha20})`;
+    const opcion15 = document.querySelector('#opcionEntrega option[value="15"]');
+    const opcion20 = document.querySelector('#opcionEntrega option[value="20"]');
+    if (opcion15) opcion15.textContent = `15 días hábiles (${fecha15})`;
+    if (opcion20) opcion20.textContent = `20 días hábiles (${fecha20})`;
 }
 
 function cambiarEntrega() {
-    const opcion = document.getElementById('opcionEntrega').value;
+    const opcion = document.getElementById('opcionEntrega')?.value;
     const inputFecha = document.getElementById('fechaEntrega');
     const hoy = new Date();
     hoy.setMinutes(hoy.getMinutes() - hoy.getTimezoneOffset());
@@ -185,7 +200,7 @@ function validarCampos() {
             return false;
         }
     }
-    const telefono = document.getElementById('telefono').value.trim();
+    const telefono = document.getElementById('telefono')?.value.trim();
     const telefonoRegex = /^\(\d{3}\)\s\d{3}\s\d{4}$/;
     if (!telefonoRegex.test(telefono)) {
         Swal.fire({
@@ -199,15 +214,7 @@ function validarCampos() {
     return true;
 }
 
-
-
-
-
-
-
 // ------------------- ENVIAR POR WHATSAPP -------------------
-
-
 function verNotas() {
     window.location.href = '/pages/notas.html';
 }
