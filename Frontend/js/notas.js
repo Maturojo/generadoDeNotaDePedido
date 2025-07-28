@@ -36,6 +36,8 @@ async function cargarNotas() {
             return coincideCliente && coincideVendedor && coincideFecha;
         });
 
+        notasFiltradas.sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
+
         console.log("Notas filtradas:", notasFiltradas);
         renderNotasAgrupadas(notasFiltradas);
     } catch (err) {
