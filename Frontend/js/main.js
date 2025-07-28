@@ -46,7 +46,7 @@ window.onload = function () {
     const primeraFila = document.querySelector('#detalles .row');
     if (primeraFila) agregarListenersFila(primeraFila);
 
-    toggleResta();
+    
     calcularTotal(); // Calcular total al cargar
 };
 

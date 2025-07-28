@@ -83,7 +83,6 @@ function obtenerDatosFormulario() {
         telefono: document.getElementById('telefono').value,
         vendedor: document.getElementById('vendedor').value,
         transferidoA: document.getElementById('transferidoA').value,
-        tipoPago: document.getElementById('tipoPago').value,
         total: parseFloat(document.getElementById('total').value) || 0,
         descuento: parseFloat(document.getElementById('descuento').value) || 0,
         adelanto: parseFloat(document.getElementById('adelanto').value) || 0,
@@ -91,4 +90,3 @@ function obtenerDatosFormulario() {
         productos
     };
 }
-
