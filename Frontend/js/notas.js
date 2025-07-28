@@ -262,23 +262,13 @@ async function generarNotaProveedor(codigo) {
         if (!response.ok) throw new Error("Nota no encontrada");
         const nota = await response.json();
 
-        // Acá podes generar el PDF versión proveedor
         const { jsPDF } = window.jspdf;
         const doc = new jsPDF();
 
-        // Podés usar la misma función dibujarPDF si el formato es similar
-        dibujarPDF(doc, {
+        // Generar PDF especial para proveedor
+        dibujarPDFProveedor(doc, {
             fecha: nota.fecha.split("T")[0],
             fechaEntrega: nota.fechaEntrega.split("T")[0],
-            seniores: nota.cliente || "Sin cliente",
-            telefono: nota.telefono || "-",
-            vendedor: nota.vendedor || "-",
-            transferidoA: nota.transferidoA || "-",
-            tipoPago: nota.tipoPago || "No informado",
-            total: nota.total || 0,
-            descuento: nota.descuento || 0,
-            adelanto: nota.adelanto || 0,
-            resta: nota.resta || 0,
             productos: nota.productos || []
         }, codigo);
 
@@ -288,6 +278,7 @@ async function generarNotaProveedor(codigo) {
         Swal.fire("Error", "No se pudo generar la nota proveedor.", "error");
     }
 }
+
 
 // ------------------- ENVIAR WHATSAPP -------------------
 async function enviarWhatsapp(codigo) {
