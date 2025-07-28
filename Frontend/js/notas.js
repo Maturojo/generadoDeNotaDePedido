@@ -288,4 +288,4 @@ async function enviarWhatsapp(codigo) {
     }
 }
 
-git add -A && git commit -m "Estoy poniendo todos los botones en notas.html" && git push
+
