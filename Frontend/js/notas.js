@@ -14,12 +14,15 @@ document.addEventListener("DOMContentLoaded", () => {
     document.getElementById("filtroVendedor").addEventListener("input", cargarNotas);
     document.getElementById("filtroFecha").addEventListener("change", cargarNotas);
 
-    const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+    // Inicializar tooltips con un leve delay
+    const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
     tooltipTriggerList.map(function (tooltipTriggerEl) {
-        return new bootstrap.Tooltip(tooltipTriggerEl)
+        return new bootstrap.Tooltip(tooltipTriggerEl, {
+            delay: { "show": 200, "hide": 50 }
+        });
     });
-    
 });
+
 
 // ------------------- CARGAR NOTAS -------------------
 async function cargarNotas() {
@@ -85,8 +88,6 @@ function agruparPorFecha(notas) {
 
 // ------------------- CREAR HTML DE UNA NOTA -------------------
 function crearHTMLNota(nota) {
-    console.log("Nota en crearHTMLNota:", nota);
-
     const codigoNota = nota.codigo || "SIN_CODIGO";
 
     return `
@@ -98,26 +99,24 @@ function crearHTMLNota(nota) {
                 $${nota.total || 0} - 
                 <span class="badge bg-secondary">Código: ${codigoNota}</span>
             </div>
-            <div>
-                <div class="btn-group btn-group-sm" role="group">
-                    <button class="btn btn-light" data-bs-toggle="tooltip" data-bs-placement="top" title="Ver PDF" onclick="verPDFNota('${codigoNota}')">
-                        <i class="bi bi-file-earmark-pdf"></i>
-                    </button>
-                    <button class="btn btn-light" data-bs-toggle="tooltip" data-bs-placement="top" title="Generar Proveedor" onclick="generarNotaProveedor('${codigoNota}')">
-                        <i class="bi bi-file-earmark-text"></i>
-                    </button>
-                    <button class="btn btn-light" data-bs-toggle="tooltip" data-bs-placement="top" title="Enviar WhatsApp" onclick="enviarWhatsapp('${codigoNota}')">
-                        <i class="bi bi-whatsapp"></i>
-                    </button>
-                    <button class="btn btn-light text-danger" data-bs-toggle="tooltip" data-bs-placement="top" title="Eliminar Nota" onclick="eliminarNota('${codigoNota}')">
-                        <i class="bi bi-trash"></i>
-                    </button>
-                </div>
-
+            <div class="btn-group btn-group-sm" role="group">
+                <button class="btn btn-light" data-bs-toggle="tooltip" data-bs-placement="top" title="Ver PDF" onclick="verPDFNota('${codigoNota}')">
+                    <i class="bi bi-file-earmark-pdf"></i>
+                </button>
+                <button class="btn btn-light" data-bs-toggle="tooltip" data-bs-placement="top" title="Generar Proveedor" onclick="generarNotaProveedor('${codigoNota}')">
+                    <i class="bi bi-file-earmark-text"></i>
+                </button>
+                <button class="btn btn-light text-success" data-bs-toggle="tooltip" data-bs-placement="top" title="Enviar WhatsApp" onclick="enviarWhatsapp('${codigoNota}')">
+                    <i class="bi bi-whatsapp"></i>
+                </button>
+                <button class="btn btn-light text-danger" data-bs-toggle="tooltip" data-bs-placement="top" title="Eliminar Nota" onclick="eliminarNota('${codigoNota}')">
+                    <i class="bi bi-trash"></i>
+                </button>
             </div>
         </div>
     `;
 }
+
 
 // ------------------- VER PDF DE NOTA -------------------
 async function verPDFNota(codigo) {
