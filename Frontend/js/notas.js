@@ -272,26 +272,37 @@ function dibujarPDFProveedor(doc, datos, codigoNota) {
     doc.setTextColor(0, 0, 0);
     doc.text(`Fecha de entrega: ${fechaEntrega}`, 20, 45);
 
-    // Tabla de productos
-    let y = 65;
+    // Posición inicial de la tabla
+    let yTabla = 65;
     doc.setFontSize(11);
-    doc.text("CANT.", 25, y);
-    doc.text("DETALLE", 60, y);
 
-    y += 5;
-    productos.forEach(prod => {
+    // Encabezados
+    doc.rect(20, yTabla, 170, 10); // rectángulo principal
+    doc.line(50, yTabla, 50, yTabla + 10); // separador de columnas
+    doc.text("CANT.", 25, yTabla + 7);
+    doc.text("DETALLE", 60, yTabla + 7);
+    yTabla += 10;
+
+    // Filas de productos
+    (productos || []).forEach(prod => {
         const cantidad = String(prod.cantidad || 0);
         const detalle = prod.detalle || prod.nombre || "Sin detalle";
-        const detalleTexto = doc.splitTextToSize(detalle, 120);
+        const detalleTexto = doc.splitTextToSize(detalle, 135); // ajustar ancho
+        const alturaFila = Math.max(detalleTexto.length * 5, 10);
 
-        doc.text(cantidad, 28, y);
-        doc.text(detalleTexto, 60, y);
-        y += (detalleTexto.length * 5);
+        doc.rect(20, yTabla, 170, alturaFila);
+        doc.line(50, yTabla, 50, yTabla + alturaFila);
+
+        doc.text(cantidad, 30, yTabla + 6);
+        doc.text(detalleTexto, 55, yTabla + 6);
+
+        yTabla += alturaFila;
     });
 
-    // Logo (opcional)
+    // Logo
     if (logo) doc.addImage(logo, 'PNG', 160, 10, 30, 30);
 }
+
 
 
 // ------------------- GENERAR NOTA PROVEEDOR -------------------
