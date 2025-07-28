@@ -1,27 +1,6 @@
 // ------------------- GENERAR PDF -------------------
 // ------------------- VER PDF (SOLO GENERAR) -------------------
-function verPDF() {
-    if (!validarCampos()) return;
 
-    const { jsPDF } = window.jspdf;
-    const doc = new jsPDF();
-    const datos = obtenerDatosFormulario();
-
-    // Cliente por defecto
-    datos.seniores = datos.seniores?.trim() || "Sin cliente";
-
-    // Generamos un código temporal (no se guarda en backend)
-    const codigoNota = generarCodigoUnico();
-
-    // Dibujamos el PDF
-    dibujarPDF(doc, datos, codigoNota);
-
-    
-    // Reemplazamos espacios por guiones bajos para el nombre del archivo
-    const nombreCliente = datos.seniores.replace(/\s+/g, "_");
-    doc.save(`nota_${nombreCliente}_${codigoNota}.pdf`);
-
-}
 
 
 // ------------------- DIBUJAR PDF -------------------

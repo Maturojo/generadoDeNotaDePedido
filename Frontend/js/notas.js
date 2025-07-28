@@ -92,6 +92,8 @@ function crearHTMLNota(nota) {
             </div>
             <div>
                 <button class="btn btn-sm btn-primary" onclick="verPDFNota('${codigoNota}')">Ver PDF</button>
+                <button class="btn btn-warning" onclick="generarNotaProveedor('${codigoNota}')">Proveedor</button>
+                <button class="btn btn-success" onclick="enviarWhatsapp('${codigoNota}')">WhatsApp</button>
                 <button class="btn btn-sm btn-danger" onclick="eliminarNota('${codigoNota}')">Eliminar</button>
             </div>
         </div>
@@ -233,3 +235,57 @@ function dibujarPDF(doc, datos, codigoNota) {
         doc.text("PAGADO", 160, 30, { align: "center" });
     }
 }
+
+// ------------------- GENERAR NOTA PROVEEDOR -------------------
+async function generarNotaProveedor(codigo) {
+    console.log("Generando nota proveedor para:", codigo);
+    try {
+        const response = await fetch(`${API_URL}/notas/codigo/${codigo}`);
+        if (!response.ok) throw new Error("Nota no encontrada");
+        const nota = await response.json();
+
+        // Acá podes generar el PDF versión proveedor
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
+
+        // Podés usar la misma función dibujarPDF si el formato es similar
+        dibujarPDF(doc, {
+            fecha: nota.fecha.split("T")[0],
+            fechaEntrega: nota.fechaEntrega.split("T")[0],
+            seniores: nota.cliente || "Sin cliente",
+            telefono: nota.telefono || "-",
+            vendedor: nota.vendedor || "-",
+            transferidoA: nota.transferidoA || "-",
+            tipoPago: nota.tipoPago || "No informado",
+            total: nota.total || 0,
+            descuento: nota.descuento || 0,
+            adelanto: nota.adelanto || 0,
+            resta: nota.resta || 0,
+            productos: nota.productos || []
+        }, codigo);
+
+        window.open(doc.output('bloburl'), '_blank');
+    } catch (err) {
+        console.error("Error generando nota proveedor:", err);
+        Swal.fire("Error", "No se pudo generar la nota proveedor.", "error");
+    }
+}
+
+// ------------------- ENVIAR WHATSAPP -------------------
+async function enviarWhatsapp(codigo) {
+    console.log("Enviando nota por WhatsApp:", codigo);
+    try {
+        const response = await fetch(`${API_URL}/notas/codigo/${codigo}`);
+        if (!response.ok) throw new Error("Nota no encontrada");
+        const nota = await response.json();
+
+        const mensaje = `Hola ${nota.cliente}, te enviamos la nota de pedido (Código: ${codigo}). Total: $${nota.total}`;
+        const link = `https://wa.me/${nota.telefono}?text=${encodeURIComponent(mensaje)}`;
+        window.open(link, '_blank');
+    } catch (err) {
+        console.error("Error enviando WhatsApp:", err);
+        Swal.fire("Error", "No se pudo enviar la nota por WhatsApp.", "error");
+    }
+}
+
+git add -A && git commit -m "Estoy poniendo todos los botones en notas.html" && git push
