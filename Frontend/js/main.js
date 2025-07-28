@@ -187,7 +187,7 @@ function cambiarEntrega() {
 
 // ------------------- VALIDACIÓN -------------------
 function validarCampos() {
-    const camposObligatorios = ['fecha', 'fechaEntrega', 'seniores', 'telefono', 'vendedor', 'transferidoA', 'tipoPago'];
+    const camposObligatorios = ['fecha', 'fechaEntrega', 'seniores', 'telefono', 'vendedor', 'transferidoA'];
     for (let campo of camposObligatorios) {
         let valor = document.getElementById(campo)?.value.trim();
         if (!valor) {
