@@ -13,6 +13,12 @@ document.addEventListener("DOMContentLoaded", () => {
     document.getElementById("filtroCliente").addEventListener("input", cargarNotas);
     document.getElementById("filtroVendedor").addEventListener("input", cargarNotas);
     document.getElementById("filtroFecha").addEventListener("change", cargarNotas);
+
+    const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+    tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl)
+    });
+    
 });
 
 // ------------------- CARGAR NOTAS -------------------
@@ -93,10 +99,21 @@ function crearHTMLNota(nota) {
                 <span class="badge bg-secondary">Código: ${codigoNota}</span>
             </div>
             <div>
-                <button class="btn btn-sm btn-primary" onclick="verPDFNota('${codigoNota}')">Ver PDF</button>
-                <button class="btn btn-warning" onclick="generarNotaProveedor('${codigoNota}')">Proveedor</button>
-                <button class="btn btn-success" onclick="enviarWhatsapp('${codigoNota}')">WhatsApp</button>
-                <button class="btn btn-sm btn-danger" onclick="eliminarNota('${codigoNota}')">Eliminar</button>
+                <div class="btn-group btn-group-sm" role="group">
+                    <button class="btn btn-light" data-bs-toggle="tooltip" data-bs-placement="top" title="Ver PDF" onclick="verPDFNota('${codigoNota}')">
+                        <i class="bi bi-file-earmark-pdf"></i>
+                    </button>
+                    <button class="btn btn-light" data-bs-toggle="tooltip" data-bs-placement="top" title="Generar Proveedor" onclick="generarNotaProveedor('${codigoNota}')">
+                        <i class="bi bi-file-earmark-text"></i>
+                    </button>
+                    <button class="btn btn-light" data-bs-toggle="tooltip" data-bs-placement="top" title="Enviar WhatsApp" onclick="enviarWhatsapp('${codigoNota}')">
+                        <i class="bi bi-whatsapp"></i>
+                    </button>
+                    <button class="btn btn-light text-danger" data-bs-toggle="tooltip" data-bs-placement="top" title="Eliminar Nota" onclick="eliminarNota('${codigoNota}')">
+                        <i class="bi bi-trash"></i>
+                    </button>
+                </div>
+
             </div>
         </div>
     `;
