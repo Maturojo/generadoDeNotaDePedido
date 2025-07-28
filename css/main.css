@@ -43,6 +43,12 @@ button {
   font-size: 1.2rem;
 }
 
+.btn.btn-light.text-success {
+  background-color: #25d366;
+  border-color: #25d366;
+  color: white;
+}
+
 .container.mt-5.p-4 {
   background-color: #f5f5f5;
   color: #615f5f;

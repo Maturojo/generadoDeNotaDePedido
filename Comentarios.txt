@@ -1,1 +1,3 @@
-git add -A && git commit -m "agregue dibujar pdf igual al index y mejore server.js" && git push
+git add -A && git commit -m "Estoy estilizando a los iconos" && git push
+
+sass scss/main.scss css/main.css
