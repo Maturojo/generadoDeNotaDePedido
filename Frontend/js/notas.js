@@ -99,29 +99,32 @@ function crearHTMLNota(nota) {
                 $${nota.total || 0} - 
                 <span class="badge bg-secondary">Código: ${codigoNota}</span>
             </div>
-            <div class="btn-group btn-group-sm" role="group">
-                <button class="btn btn-light" data-bs-toggle="tooltip" data-bs-placement="top" title="Ver PDF" onclick="verPDFNota('${codigoNota}')">
-                    <i class="bi bi-file-earmark-pdf"></i>
-                </button>
-                <button class="btn btn-light" data-bs-toggle="tooltip" data-bs-placement="top" title="Generar Proveedor" onclick="generarNotaProveedor('${codigoNota}')">
-                    <i class="bi bi-file-earmark-text"></i>
-                </button>
-                <button class="btn btn-light text-success" data-bs-toggle="tooltip" data-bs-placement="top" title="Enviar WhatsApp" onclick="enviarWhatsapp('${codigoNota}')">
-                    <i class="bi bi-whatsapp"></i>
-                </button>
-                <button class="btn btn-light text-danger" data-bs-toggle="tooltip" data-bs-placement="top" title="Eliminar Nota" onclick="eliminarNota('${codigoNota}')">
-                    <i class="bi bi-trash"></i>
-                </button>
+            <div class="d-flex align-items-center gap-2">
+                <select id="estado-${codigoNota}" class="form-select form-select-sm" style="width:auto;">
+                    <option value="Pago completo" ${nota.tipoPago === "Pago completo" ? "selected" : ""}>Pago completo</option>
+                    <option value="Adelanto" ${nota.tipoPago === "Adelanto" ? "selected" : ""}>Adelanto</option>
+                    <option value="Pendiente" ${nota.tipoPago === "Pendiente" ? "selected" : ""}>Pendiente</option>
+                </select>
+                <div class="btn-group btn-group-sm">
+                    <button class="btn btn-primary" onclick="verPDFNota('${codigoNota}')"><i class="bi bi-file-earmark-pdf"></i></button>
+                    <button class="btn btn-warning" onclick="generarNotaProveedor('${codigoNota}')"><i class="bi bi-file-earmark-text"></i></button>
+                    <button class="btn btn-success" onclick="enviarWhatsapp('${codigoNota}')"><i class="bi bi-whatsapp"></i></button>
+                    <button class="btn btn-danger" onclick="eliminarNota('${codigoNota}')"><i class="bi bi-trash"></i></button>
+                </div>
             </div>
         </div>
     `;
 }
 
 
+
 // ------------------- VER PDF DE NOTA -------------------
 async function verPDFNota(codigo) {
     console.log("Ver PDF de la nota:", codigo);
     try {
+        // Tomar el estado del dropdown
+        const estadoPago = document.getElementById(`estado-${codigo}`).value;
+
         const response = await fetch(`${API_URL}/notas/codigo/${codigo}`);
         if (!response.ok) throw new Error("Nota no encontrada");
         const nota = await response.json();
@@ -130,7 +133,7 @@ async function verPDFNota(codigo) {
         const { jsPDF } = window.jspdf;
         const doc = new jsPDF();
 
-        // Construir el PDF con los datos de la nota
+        // Construir el PDF con los datos de la nota y el estado elegido
         dibujarPDF(doc, {
             fecha: nota.fecha.split("T")[0],
             fechaEntrega: nota.fechaEntrega.split("T")[0],
@@ -138,7 +141,7 @@ async function verPDFNota(codigo) {
             telefono: nota.telefono || "-",
             vendedor: nota.vendedor || "-",
             transferidoA: nota.transferidoA || "-",
-            tipoPago: nota.tipoPago || "No informado",
+            tipoPago: estadoPago, // Usar estado seleccionado
             total: nota.total || 0,
             descuento: nota.descuento || 0,
             adelanto: nota.adelanto || 0,
@@ -152,6 +155,7 @@ async function verPDFNota(codigo) {
         Swal.fire("Error", "No se pudo generar el PDF de la nota.", "error");
     }
 }
+
 
 // ------------------- ELIMINAR NOTA -------------------
 async function eliminarNota(codigo) {
