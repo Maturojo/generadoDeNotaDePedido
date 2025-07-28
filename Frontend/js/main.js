@@ -116,26 +116,14 @@ function calcularTotal() {
     if (totalInput) totalInput.value = total.toFixed(2);
 
     const adelanto = parseFloat(document.getElementById('adelanto')?.value) || 0;
-    const tipoPago = document.getElementById('tipoPago')?.value;
-
     const restaInput = document.getElementById('resta');
     if (restaInput) {
-        if (tipoPago === "Pago completo") {
-            restaInput.value = 0;
-        } else {
-            restaInput.value = (total - adelanto).toFixed(2);
-        }
+        restaInput.value = (total - adelanto).toFixed(2);
     }
 }
 
-function toggleResta() {
-    const tipoPago = document.getElementById('tipoPago')?.value;
-    const restaCol = document.getElementById('resta-col');
-    if (restaCol) {
-        restaCol.style.display = (tipoPago === "Pago completo") ? "none" : "block"; 
-    }
-    calcularTotal();
-}
+
+
 
 // ------------------- FECHAS DE ENTREGA -------------------
 function sumarDiasHabiles(fecha, diasHabiles) {
