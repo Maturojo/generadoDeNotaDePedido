@@ -11,7 +11,6 @@ async function guardarNotaEnBackend(datos, pdfBlob = null, codigoNota = generarC
         formData.append("fecha", datos.fecha);
         formData.append("fechaEntrega", datos.fechaEntrega);
         formData.append("transferidoA", datos.transferidoA);
-        formData.append("tipoPago", datos.tipoPago);
         formData.append("total", datos.total);
         formData.append("descuento", datos.descuento);
         formData.append("adelanto", datos.adelanto);
