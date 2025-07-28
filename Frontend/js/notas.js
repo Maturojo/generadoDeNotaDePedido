@@ -258,12 +258,15 @@ function dibujarPDF(doc, datos, codigoNota) {
 function dibujarPDFProveedor(doc, datos, codigoNota) {
     const { fecha, fechaEntrega, productos } = datos;
 
+    // Color gris general
+    const gris = [97, 95, 95];
+    doc.setTextColor(...gris);
+
     // Logo
     if (logo) doc.addImage(logo, 'PNG', 15, 10, 25, 25);
 
-    // Título y encabezado
+    // Encabezado
     doc.setFontSize(16);
-    doc.setTextColor(97, 95, 95);
     doc.text("NOTA DE PROVEEDOR", 60, 20);
     doc.setFontSize(12);
     doc.text("SUR MADERAS", 60, 27);
@@ -275,7 +278,6 @@ function dibujarPDFProveedor(doc, datos, codigoNota) {
     doc.text(`Fecha de inicio: ${fecha}`, 20, 50);
 
     doc.setFontSize(12);
-    doc.setTextColor(0, 0, 0);
     doc.text(`Fecha de entrega: ${fechaEntrega}`, 20, 58);
 
     // Tabla de productos
