@@ -100,10 +100,11 @@ function crearHTMLNota(nota) {
                 <span class="badge bg-secondary">Código: ${codigoNota}</span>
             </div>
             <div class="d-flex align-items-center gap-2">
-                <select id="estado-${codigoNota}" class="form-select form-select-sm" style="width:auto;">
-                    <option value="Pago completo" ${nota.tipoPago === "Pago completo" ? "selected" : ""}>Pago completo</option>
-                    <option value="Adelanto" ${nota.tipoPago === "Adelanto" ? "selected" : ""}>Adelanto</option>
-                    <option value="Pendiente" ${nota.tipoPago === "Pendiente" ? "selected" : ""}>Pendiente</option>
+                <select id="estado-${codigoNota}" class="form-select form-select-sm" style="width:auto;"
+                        onchange="seleccionarEstado('${codigoNota}', ${nota.total})">
+                    <option value="Pago completo">Pago completo</option>
+                    <option value="Adelanto">Adelanto</option>
+                    <option value="Pendiente">Pendiente</option>
                 </select>
                 <div class="btn-group btn-group-sm">
                     <button class="btn btn-primary" onclick="verPDFNota('${codigoNota}')"><i class="bi bi-file-earmark-pdf"></i></button>
@@ -118,22 +119,21 @@ function crearHTMLNota(nota) {
 
 
 
+
 // ------------------- VER PDF DE NOTA -------------------
 async function verPDFNota(codigo) {
-    console.log("Ver PDF de la nota:", codigo);
     try {
-        // Tomar el estado del dropdown
         const estadoPago = document.getElementById(`estado-${codigo}`).value;
-
         const response = await fetch(`${API_URL}/notas/codigo/${codigo}`);
         if (!response.ok) throw new Error("Nota no encontrada");
         const nota = await response.json();
-        console.log("Nota recuperada para PDF:", nota);
+
+        const adelanto = adelantos[codigo] || 0;
+        const resta = (nota.total || 0) - adelanto;
 
         const { jsPDF } = window.jspdf;
         const doc = new jsPDF();
 
-        // Construir el PDF con los datos de la nota y el estado elegido
         dibujarPDF(doc, {
             fecha: nota.fecha.split("T")[0],
             fechaEntrega: nota.fechaEntrega.split("T")[0],
@@ -141,11 +141,11 @@ async function verPDFNota(codigo) {
             telefono: nota.telefono || "-",
             vendedor: nota.vendedor || "-",
             transferidoA: nota.transferidoA || "-",
-            tipoPago: estadoPago, // Usar estado seleccionado
+            tipoPago: estadoPago,
             total: nota.total || 0,
             descuento: nota.descuento || 0,
-            adelanto: nota.adelanto || 0,
-            resta: nota.resta || 0,
+            adelanto: adelanto,
+            resta: resta,
             productos: nota.productos || []
         }, codigo);
 
@@ -155,6 +155,7 @@ async function verPDFNota(codigo) {
         Swal.fire("Error", "No se pudo generar el PDF de la nota.", "error");
     }
 }
+
 
 
 // ------------------- ELIMINAR NOTA -------------------
@@ -351,6 +352,40 @@ async function enviarWhatsapp(codigo) {
     } catch (err) {
         console.error("Error enviando WhatsApp:", err);
         Swal.fire("Error", "No se pudo enviar la nota por WhatsApp.", "error");
+    }
+}
+
+let adelantos = {}; // Objeto para almacenar adelantos por código
+
+async function seleccionarEstado(codigo, total) {
+    const estadoSelect = document.getElementById(`estado-${codigo}`);
+    const estado = estadoSelect.value;
+
+    if (estado === "Adelanto") {
+        const { value: adelanto } = await Swal.fire({
+            title: "Monto del adelanto",
+            input: "number",
+            inputLabel: `Ingrese cuánto deja de adelanto (Total: $${total})`,
+            inputPlaceholder: "Ej: 5000",
+            inputAttributes: {
+                min: 0,
+                max: total,
+                step: 0.01
+            },
+            showCancelButton: true,
+            confirmButtonText: "Aceptar",
+            cancelButtonText: "Cancelar"
+        });
+
+        if (adelanto === null || adelanto === "") {
+            estadoSelect.value = "Pendiente"; // Si cancela, volver a Pendiente
+            return;
+        }
+
+        adelantos[codigo] = parseFloat(adelanto);
+        Swal.fire("Guardado", `Adelanto de $${adelanto} registrado.`, "success");
+    } else {
+        adelantos[codigo] = 0; // No hay adelanto
     }
 }
 
