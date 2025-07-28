@@ -254,6 +254,46 @@ function dibujarPDF(doc, datos, codigoNota) {
     }
 }
 
+// ------------------- DIBUJAR PDF PROVEEDOR -------------------
+function dibujarPDFProveedor(doc, datos, codigoNota) {
+    const { fecha, fechaEntrega, productos } = datos;
+
+    // Título principal
+    doc.setFontSize(20);
+    doc.setTextColor(0, 0, 0);
+    doc.text("NOTA DE PROVEEDOR", 70, 20);
+
+    // Fechas
+    doc.setFontSize(12);
+    doc.setTextColor(97, 95, 95);
+    doc.text(`Fecha de inicio: ${fecha}`, 20, 35);
+
+    doc.setFontSize(14); // Fecha entrega más grande
+    doc.setTextColor(0, 0, 0);
+    doc.text(`Fecha de entrega: ${fechaEntrega}`, 20, 45);
+
+    // Tabla de productos
+    let y = 65;
+    doc.setFontSize(11);
+    doc.text("CANT.", 25, y);
+    doc.text("DETALLE", 60, y);
+
+    y += 5;
+    productos.forEach(prod => {
+        const cantidad = String(prod.cantidad || 0);
+        const detalle = prod.detalle || prod.nombre || "Sin detalle";
+        const detalleTexto = doc.splitTextToSize(detalle, 120);
+
+        doc.text(cantidad, 28, y);
+        doc.text(detalleTexto, 60, y);
+        y += (detalleTexto.length * 5);
+    });
+
+    // Logo (opcional)
+    if (logo) doc.addImage(logo, 'PNG', 160, 10, 30, 30);
+}
+
+
 // ------------------- GENERAR NOTA PROVEEDOR -------------------
 async function generarNotaProveedor(codigo) {
     console.log("Generando nota proveedor para:", codigo);
