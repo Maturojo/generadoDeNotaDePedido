@@ -258,50 +258,50 @@ function dibujarPDF(doc, datos, codigoNota) {
 function dibujarPDFProveedor(doc, datos, codigoNota) {
     const { fecha, fechaEntrega, productos } = datos;
 
-    // Título principal
-    doc.setFontSize(20);
-    doc.setTextColor(0, 0, 0);
-    doc.text("NOTA DE PROVEEDOR", 70, 20);
+    // Logo
+    if (logo) doc.addImage(logo, 'PNG', 15, 10, 25, 25);
+
+    // Título y encabezado
+    doc.setFontSize(16);
+    doc.setTextColor(97, 95, 95);
+    doc.text("NOTA DE PROVEEDOR", 60, 20);
+    doc.setFontSize(12);
+    doc.text("SUR MADERAS", 60, 27);
+    doc.setFontSize(11);
+    doc.text(`Código: ${codigoNota}`, 60, 34);
 
     // Fechas
+    doc.setFontSize(10);
+    doc.text(`Fecha de inicio: ${fecha}`, 20, 50);
+
     doc.setFontSize(12);
-    doc.setTextColor(97, 95, 95);
-    doc.text(`Fecha de inicio: ${fecha}`, 20, 35);
-
-    doc.setFontSize(14); // Fecha entrega más grande
     doc.setTextColor(0, 0, 0);
-    doc.text(`Fecha de entrega: ${fechaEntrega}`, 20, 45);
+    doc.text(`Fecha de entrega: ${fechaEntrega}`, 20, 58);
 
-    // Posición inicial de la tabla
-    let yTabla = 65;
+    // Tabla de productos
+    let yTabla = 75;
     doc.setFontSize(11);
-
-    // Encabezados
-    doc.rect(20, yTabla, 170, 10); // rectángulo principal
-    doc.line(50, yTabla, 50, yTabla + 10); // separador de columnas
+    doc.rect(20, yTabla, 170, 10);
+    doc.line(50, yTabla, 50, yTabla + 10);
     doc.text("CANT.", 25, yTabla + 7);
     doc.text("DETALLE", 60, yTabla + 7);
     yTabla += 10;
 
-    // Filas de productos
     (productos || []).forEach(prod => {
         const cantidad = String(prod.cantidad || 0);
         const detalle = prod.detalle || prod.nombre || "Sin detalle";
-        const detalleTexto = doc.splitTextToSize(detalle, 135); // ajustar ancho
+        const detalleTexto = doc.splitTextToSize(detalle, 135);
         const alturaFila = Math.max(detalleTexto.length * 5, 10);
 
         doc.rect(20, yTabla, 170, alturaFila);
         doc.line(50, yTabla, 50, yTabla + alturaFila);
-
         doc.text(cantidad, 30, yTabla + 6);
         doc.text(detalleTexto, 55, yTabla + 6);
 
         yTabla += alturaFila;
     });
-
-    // Logo
-    if (logo) doc.addImage(logo, 'PNG', 160, 10, 30, 30);
 }
+
 
 
 
